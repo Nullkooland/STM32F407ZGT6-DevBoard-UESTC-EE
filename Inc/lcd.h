@@ -103,13 +103,15 @@ static inline uint16_t LCD_BackBuffer_ReadPixel(uint16_t x, uint16_t y);
 
 /* 实时曲线图操作函数 */
 void Graph_Init(const Graph_TypeDef *graph);
+
 void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t color);
+void Graph_RecoverGrid(const Graph_TypeDef *graph, const uint16_t *data);
+static inline uint16_t Graph_GetRecoverPixelColor(const Graph_TypeDef *graph, uint16_t x0, uint16_t y0);
+
 void Graph_DrawCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t colorA, uint16_t xB, uint16_t colorB);
 void Graph_DrawCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t colorA, uint16_t yB, uint16_t colorB);
-void Graph_RecoverGrid(const Graph_TypeDef *graph, const uint16_t *data);
 void Graph_RecoverCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t xB);
 void Graph_RecoverCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t yB);
-static inline uint16_t Graph_GetRecoverPixelColor(const Graph_TypeDef *graph, uint16_t x0, uint16_t y0);
 
 extern void Delay_ms(uint16_t ms);
 extern void Delay_us(uint32_t us);

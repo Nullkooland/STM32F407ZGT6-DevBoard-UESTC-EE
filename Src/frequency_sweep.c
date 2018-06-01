@@ -10,7 +10,9 @@
 static uint8_t str_buffer[32];
 static uint16_t display_values[GRID_WIDTH];
 static Graph_TypeDef graph;
-static uint16_t cursor_XA, cursor_XB;
+
+static _Bool is_cursor_select_A;
+static int16_t cursor_XA, cursor_XB;
 
 //输出幅值控制
 static uint8_t output_amp;
@@ -18,12 +20,12 @@ static uint8_t amp_step;
 //static uint8_t pe4302_2x_loss;	// dB
 
 //扫频控制
-static uint16_t output_freq;		// kHz
-static uint16_t sweep_freq[3];		// 0:起始频率, 1:终止频率, 2:频率步进
+static uint32_t sweep_freq[3];		// 0:起始频率, 1:终止频率, 2:频率步进
 
 //检波电平采样
 extern ADC_HandleTypeDef hadc1;
-static uint16_t adc_values[MAX_SAMPLE_COUNT];
+static uint16_t adc_sampling_values[ADC_SAMPLE_COUNT];
+static uint16_t data_values[MAX_SAMPLE_COUNT];
 static uint16_t sample_count;
 
 void FreqSweep_Init(void)
@@ -47,8 +49,6 @@ void FreqSweep_Init(void)
 	output_amp = 50;
 	amp_step = 1;
 
-	output_freq = 1000;
-
 	sweep_freq[0] = 4000;
 	sweep_freq[1] = 50000;
 	sweep_freq[2] = 100;
@@ -67,10 +67,11 @@ void FreqSweep_Init(void)
 	Graph_Init(&graph);
 
 	/* Interp Test */
-	uint16_t size = 64;
-	float delta = 0.5f;
+	/*
+	uint16_t size = 128;
+	float delta = 0.12f;
 
-	uint16_t sample_data[64];
+	uint16_t sample_data[128];
 	uint16_t origin_data[GRID_WIDTH];
 	uint16_t interp_data[GRID_WIDTH];
 
@@ -83,13 +84,13 @@ void FreqSweep_Init(void)
 		uint32_t x = (i << 20) / GRID_WIDTH * size;
 		interp_data[i] = arm_linear_interp_q15(sample_data, x, size);
 		//For Contrast
-		origin_data[i] = (2.0f + arm_sin_f32(delta * 64 / GRID_WIDTH * i)) * 100U;
+		origin_data[i] = (2.0f + arm_sin_f32(delta * size / GRID_WIDTH * i)) * 100U;
 	}
 
 	Graph_DrawCurve(&graph, origin_data, BLUE);
 	Graph_DrawCurve(&graph, interp_data, RED);
-
-	LCD_BackBuffer_Update();
+	*/
+	//LCD_BackBuffer_Update();
 
 	int i;
 
@@ -136,13 +137,16 @@ void FreqSweep_Init(void)
 	LCD_ShowString(CURSORBOX_X + 8, CURSORBOX_Y + 144, 16, "B - 增益:", WHITE);
 	LCD_ShowString(CURSORBOX_X + 8, CURSORBOX_Y + 168, 16, "Δ- 增益:", WHITE);
 
-	SetFreqParameters();
+	//光标初始化
+	cursor_XA = GRID_WIDTH / 3;
+	cursor_XB = GRID_WIDTH * 2 / 3;
+	CursorDisplay();
 }
 
 static void UpdateFreqInfoDispaly(void)
 {
 	//使用大黑块进行[数据删除]
-	LCD_FillRect(GRID_X, GRID_Y + GRID_HEIGHT + 3, GRID_WIDTH, 16, BLACK);
+	LCD_FillRect(GRID_X - 12, GRID_Y + GRID_HEIGHT + 3, GRID_WIDTH + 36, 16, BLACK);
 	LCD_FillRect(FREQBOX_X + 85, FREQBOX_Y + 8, 80, 88, BLACK);
 
 	//更新频率轴坐标值
@@ -166,17 +170,14 @@ static inline void UpdateOutputAmp(void)
 {
 	//查表并设置衰减值
 	PE4302_SetLoss(amp_table[50 - output_amp][0]);
-	AD9959_SetAmp(AD9959_CHANNEL_2, amp_table[50 - output_amp][1]);
+	AD9959_SetAmp(OUTPUT_CHANNEL, amp_table[50 - output_amp][1]);
 
 	//使用大黑块进行[数据删除]
-	LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 8, 48, 40, BLACK);
+	LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 8, 48, 16, BLACK);
 
 	//更新输出幅度息窗显示数值
 	sprintf(str_buffer, "%-3u mV", output_amp * 2);
 	LCD_ShowString(AMPBOX_X + 118, AMPBOX_Y + 8, 16, str_buffer, LIGHTGRAY);
-
-	sprintf(str_buffer, "%-3u mV", amp_step * 2);
-	LCD_ShowString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
 }
 
 static inline void FreqParameterDisplay(uint8_t i, _Bool isSlected)
@@ -205,7 +206,7 @@ static void SetFreqParameters(void)
 	{
 		switch (ZLG7290_ReadKey())
 		{
-		case 5:
+		case 18:
 
 			FreqParameterDisplay(i, 0);
 
@@ -219,7 +220,7 @@ static void SetFreqParameters(void)
 			FreqParameterDisplay(i, 1);
 			break;
 
-		case 13:
+		case 19:
 
 			FreqParameterDisplay(i, 0);
 
@@ -233,16 +234,15 @@ static void SetFreqParameters(void)
 			FreqParameterDisplay(i, 1);
 			break;
 
-		case 21:
+		case 20:
 
 			if (GetInputFloat(&input_val)) {
-				sweep_freq[i] = (uint16_t)(input_val * 1000U);
+				sweep_freq[i] = input_val * 1000;
 				FreqParameterDisplay(i, 1);
 			}
-
 			break;
 
-		case 29:
+		case 17:
 			//输入的扫频范围无效 还原原来的范围
 			if (sweep_freq[0] > sweep_freq[1] || sweep_freq[1] < 100U || sweep_freq[1] > 200000U) {
 				sweep_freq[0] = backup_sweep_freq[0];
@@ -265,101 +265,132 @@ static void SetFreqParameters(void)
 	}
 }
 
+static void FreqSweepAndSampling()
+{
+	uint32_t output_freq = sweep_freq[0];
 
-void FreqSweep_Function()
+	//ADC开始采样对数检波电平
+	HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
+
+	for (uint16_t i = 0; i < sample_count; i++)
+	{
+		AD9959_SetFreq(OUTPUT_CHANNEL, output_freq);
+
+		Delay_us(25);
+		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &data_values[i]);
+
+		output_freq += sweep_freq[2];
+	}
+
+	//ADC停止采样
+	HAL_ADC_Stop_DMA(&hadc1);
+}
+
+void FreqSweep_Start()
 {
 	for (;;)
 	{
 		switch (ZLG7290_ReadKey())
 		{
-		case 1:
-			FreqPoint_Output();
-			break;
-
-		case 9:
-			FreqSweep_Start();
-			break;
-
 		case 17:
-			Draw_Curve(LIGHTBLUE);
-			Curve_Trace();
-			Recover_Grid();
+			SetFreqParameters();
 			break;
-		}
 
-		STATUS_LED(1);
-		Delay_ms(75);
-		STATUS_LED(0);
-		Delay_ms(75);
-	}
-}
+		case 25:
+			++amp_step;
+			amp_step %= 5;
 
-/*
-void FreqPoint_Output(void)
-{
+			sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
 
-	Update_StatusDisplay(FREQ_POINT_OUTPUT);
-	LCD_ShowNumber(640, 260, 32, output_freq, GREEN);
-	LCD_ShowNumber(640, 156, 32, pe4302_2x_loss, RED);
+			LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 32, 48, 16, BLACK);
+			LCD_ShowString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
+			break;
 
-	AD9959_SetAmp(AD9959_CHANNEL_3, 1023);
-	AD9959_SetFreq(AD9959_CHANNEL_3, output_freq * 1000000U);
-	PE4302_SetLoss(0, pe4302_2x_loss);
+		case 26:
+			if (output_amp > amp_step + 2) {
+				output_amp -= amp_step + 1;
+			}
 
+			UpdateOutputAmp();
+			break;
 
-	_Bool flag = 1;
-	while (flag)
-	{
-		switch (ZLG7290_ReadKey())
-		{
+		case 27:
+			if (output_amp + amp_step < 50) {
+				output_amp += amp_step + 1;
+			}
+
+			UpdateOutputAmp();
+			break;
+
+		case 33:
+			is_cursor_select_A = !is_cursor_select_A;
+
+			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
+			CursorDisplay();
+			break;
+
 		case 34:
-			if (output_freq > 1)
-			{
-				output_freq--;
-				AD9959_SetFreq(AD9959_CHANNEL_3, output_freq * 1000000U);
-				LCD_FillRect(640, 260, 32, 32, BLACK);
-				LCD_ShowNumber(640, 260, 32, output_freq, GREEN);
+			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
+
+			if (is_cursor_select_A) {
+				cursor_XA -= 2;
+				cursor_XA = (cursor_XA <= 0) ? GRID_WIDTH - 1 : cursor_XA;
 			}
+			else {
+				cursor_XB -= 2;
+				cursor_XB = (cursor_XB <= 0) ? GRID_WIDTH - 1 : cursor_XB;
+			}
+
+			CursorDisplay();
 			break;
 
-		case 36:
-			if (output_freq < 40)
-			{
-				output_freq++;
-				AD9959_SetFreq(AD9959_CHANNEL_3, output_freq * 1000000U);
-				LCD_FillRect(640, 260, 32, 32, BLACK);
-				LCD_ShowNumber(640, 260, 32, output_freq, GREEN);
-			}
-			break;
+		case 35:
+			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
 
-		case 37:
-			if (pe4302_2x_loss < 63)
-			{
-				PE4302_SetLoss(0, ++pe4302_2x_loss);
-				LCD_FillRect(640, 156, 48, 32, BLACK);
-				LCD_ShowNumber(640, 156, 32, pe4302_2x_loss, RED);
+			if (is_cursor_select_A) {
+				cursor_XA += 2;
+				cursor_XA %= GRID_WIDTH;
 			}
-			break;
-
-		case 29:
-			if (pe4302_2x_loss > 0)
-			{
-				PE4302_SetLoss(0, --pe4302_2x_loss);
-				LCD_FillRect(640, 156, 48, 32, BLACK);
-				LCD_ShowNumber(640, 156, 32, pe4302_2x_loss, RED);
+			else {
+				cursor_XB += 2;
+				cursor_XB %= GRID_WIDTH;
 			}
-			break;
 
-		case 5:
-			flag = 0;
-			Update_StatusDisplay(CHI_GUA);
+			CursorDisplay();
 			break;
 		}
+		
+		FreqSweepAndSampling();
 
-		Delay_ms(10);
+		Graph_RecoverGrid(&graph, display_values);
+
+		//将采样数据线性插值到图表区相同的宽度以便于显示
+		for (uint16_t i = 0; i < GRID_WIDTH; i++) {
+			uint32_t x = (i << 20) / GRID_WIDTH * sample_count;
+			display_values[i] = arm_linear_interp_q15(data_values, x, sample_count) + 2048U;
+		}
+
+		arm_shift_q15(display_values, -4, display_values, GRID_WIDTH);
+		Graph_DrawCurve(&graph, display_values, RED);
+
+#if GRAPH_USE_BACKBUFFER
+		LCD_BackBuffer_Update();
+#endif // GRAPH_USE_BACKBUFFER
+
+		Delay_ms(33);
 	}
 }
-*/
 
+static inline void CursorDisplay(void)
+{
+	LCD_FillRect(CURSORBOX_X + 88, CURSORBOX_Y + 8, 8, 16, BLACK);
 
-
+	if (is_cursor_select_A) {
+		Graph_DrawCursorX(&graph, cursor_XA, YELLOW, cursor_XB, BROWN);
+		LCD_ShowChar_ASCII(CURSORBOX_X + 88, CURSORBOX_Y + 8, 16, 'A', YELLOW);
+	}
+	else {
+		Graph_DrawCursorX(&graph, cursor_XA, BROWN, cursor_XB, YELLOW);
+		LCD_ShowChar_ASCII(CURSORBOX_X + 88, CURSORBOX_Y + 8, 16, 'B', YELLOW);
+	}
+}

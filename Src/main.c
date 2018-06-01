@@ -1,22 +1,26 @@
-/* Includes ------------------------------------------------------------------*/
-#include "main.h"
-#include "stm32f4xx_hal.h"
-#include "fatfs.h"
+#include <stm32f4xx_hal.h>
+#include <stdio.h>
+#include <arm_math.h>
 /* System Peripherals */
 #include "dma.h"
 #include "i2c.h"
-#include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "fsmc.h"
+#include "fatfs.h"
 /* External Hardware */
 #include "zlg7290.h"
 #include "lcd.h"
-#include "ad7606.h"
+#include "sram.h"
+#include "ad9959.h"
+/* Applications & GUI */
+#include "frequency_sweep.h"
+#include "number_input.h"
 
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
+static void SystemClock_Config(void);
+void _Error_Handler(char*, int);
 
+extern UART_RxBuffer_TypeDef huart1_buffer;
 
 int main(void)
 {
@@ -24,41 +28,67 @@ int main(void)
 	HAL_Init();
 	/* Configure the system clock */
 	SystemClock_Config();
-	/* Initialize all configured peripherals */
-	MX_DMA_Init();
-	MX_SPI2_Init();
-	MX_USART1_UART_Init();
-	MX_I2C1_Init();
-	MX_FSMC_Init();
-	MX_TIM13_Init();
-	FATFS_Init();
+	/* Initialize system peripherals */
+	DMA_Init();
+	FSMC_Init();
+	USART1_UART_Init();
 	/* Initialize all external hardware */
-	LCD_Init(0);
 	ZLG7290_Init();
-	//AD7606_Init();
+	LCD_Init(0);
+	/* Initialize Fat FileSystem for SD Card */
+	FATFS_Init();
 
-	LCD_DrawPicture_SD(0, 0, 800, 480, "0:WBB.rgb16");
-	LCD_ShowString(240, 420, 32, "ÄãÍÞÊÇÖí¶ù³æÂð£¡", WHITE);
+	//LCD_DrawPicture_SD(0, 0, 800, 480, "0:FOX.rgb16");
+	//LCD_ShowString(240, 420, 32, "ÄãÍÞÊÇÖí¶ù³æÂð£¡", BLACK);
 
-	GPIO_InitTypeDef GPIO_InitStruct;
-	GPIO_InitStruct.Pin = GPIO_PIN_10;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+	FreqSweep_Init();
+	FreqSweep_Start();
 
-	/* Infinite loop */
 	for (;;)
 	{
-		GPIOF->BSRR = GPIO_PIN_10;
+		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
 		Delay_ms(100);
-		GPIOF->BSRR = (uint32_t)GPIO_PIN_10 << 16;
+
+		/*
+		Graph_DrawCursorX(&graph, cursorXA, YELLOW, cursorXB, BROWN);
+
+		Graph_DrawCurve(&graph, ch0, RED);
+		Graph_DrawCurve(&graph, ch1, BLUE);
+		LCD_BackBuffer_Update();
+		Delay_ms(10);
+
+		Graph_RecoverCursorX(&graph, cursorXA, cursorXB);
+
+		++cursorXA;
+		cursorXB += 2;
+		cursorXA %= graph.Width;
+		cursorXB %= graph.Width;
+
+		Graph_RecoverGrid(&graph, ch0);
+		Graph_RecoverGrid(&graph, ch1);
+		*/
+
+		if (huart1_buffer.RxEnd) {
+			float loss;
+			uint16_t amp = 1023;
+			sscanf(huart1_buffer.Data, "%f, %u", &loss, &amp);
+
+			loss = (loss > 0.0f) ? loss : 0.0f;
+			loss = (loss < 31.51f) ? loss : 31.5f;
+
+			uint8_t _2xLoss = (uint8_t)(loss * 2.0f);
+			PE4302_SetLoss(_2xLoss);
+			AD9959_SetAmp(AD9959_CHANNEL_2, amp);
+
+			huart1_buffer.RxEnd = 0;
+		}
+
+		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
 		Delay_ms(100);
 	}
 }
 
-/* System Clock Configuration */
-void SystemClock_Config(void)
+static void SystemClock_Config(void)
 {
 	RCC_OscInitTypeDef RCC_OscInitStruct;
 	RCC_ClkInitTypeDef RCC_ClkInitStruct;
@@ -74,16 +104,15 @@ void SystemClock_Config(void)
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLM = 4;
 	RCC_OscInitStruct.PLL.PLLN = 168;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 4;
+	RCC_OscInitStruct.PLL.PLLP = 2;
+	RCC_OscInitStruct.PLL.PLLQ = 7;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	/* Initializes the CPU, AHB and APB busses clocks */
 	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-		| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	                            | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
@@ -94,13 +123,9 @@ void SystemClock_Config(void)
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	/* Configure the Systick interrupt time */
-	HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 8000);
-
 	/* Configure the Systick */
+	HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 8000);
 	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK_DIV8);
-
-	/* SysTick_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 
 	/* GPIO Ports Clock Enable */
@@ -114,15 +139,35 @@ void SystemClock_Config(void)
 	__HAL_RCC_GPIOH_CLK_ENABLE();
 }
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @param  None
-  * @retval None
-  */
+void HAL_MspInit(void)
+{
+	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+
+	/* MemoryManagement_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(MemoryManagement_IRQn, 0, 0);
+	/* BusFault_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(BusFault_IRQn, 0, 0);
+	/* UsageFault_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(UsageFault_IRQn, 0, 0);
+	/* SVCall_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(SVCall_IRQn, 0, 0);
+	/* DebugMonitor_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(DebugMonitor_IRQn, 0, 0);
+	/* PendSV_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(PendSV_IRQn, 0, 0);
+	/* SysTick_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
+
+
 void _Error_Handler(char * file, int line)
 {
-	/* User can add his own implementation to report the HAL error return state */
-	while (1)
-	{
-	}
+	printf("Error at %s\n", file);
+	while (1);
+}
+
+void HardFault_Handler(void)
+{
+	puts("HARD FAULT!!!");
+	while (1);
 }

@@ -1,6 +1,10 @@
 #pragma once
 #include <stm32f4xx_hal.h>
+#include "ad9959.h"
 
+#define	OUTPUT_CHANNEL		AD9959_CHANNEL_2
+
+#define ADC_SAMPLE_COUNT	32
 #define MAX_SAMPLE_COUNT	2048
 #define MIN_SAMPLE_COUNT	128
 
@@ -93,6 +97,7 @@ static void UpdateOutputAmp(void);
 
 //Inline Functions
 static inline void FreqParameterDisplay(uint8_t i, _Bool isSlected);
+static inline void CursorDisplay(void);
 
 //ZLG7290 Keyboard Driver
 extern void ZLG7290_Init();

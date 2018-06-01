@@ -857,12 +857,26 @@ void LCD_BackBuffer_DrawRect(uint16_t x, uint16_t y, uint16_t width, uint16_t he
 
 void LCD_BackBuffer_Update()
 {
+	uint32_t src_addr = back_buffer.Pixels;
+	uint32_t word_count = back_buffer.Width * back_buffer.Height / 2;
+
 	LCD_SetWindow(back_buffer.X, back_buffer.Y, back_buffer.Width, back_buffer.Height);
 	WRITE_CMD(0x2C00);
 
+	/*
 	for (uint32_t i = 0; i < back_buffer.Width * back_buffer.Height; i++) {
-		WRITE_DATA(back_buffer.Pixels[i]);
+	WRITE_DATA(back_buffer.Pixels[i]);
+	}*/
+
+	for (uint32_t i = 0; i < word_count >> 15; i++)
+	{
+		HAL_DMA_Start(&hdma_m2m, src_addr, FSMC_LCD_DATA, 0x8000);
+		HAL_DMA_PollForTransfer(&hdma_m2m, HAL_DMA_FULL_TRANSFER, 0xFF);
+		src_addr += 0x20000;
 	}
+
+	HAL_DMA_Start(&hdma_m2m, src_addr, FSMC_LCD_DATA, word_count % 0x8000);
+	HAL_DMA_PollForTransfer(&hdma_m2m, HAL_DMA_FULL_TRANSFER, 0xFF);
 }
 
 static inline void LCD_BackBuffer_DrawPixel(uint16_t x, uint16_t y, uint16_t color)
@@ -965,46 +979,6 @@ void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t 
 	}
 }
 
-void Graph_DrawCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t colorA, uint16_t xB, uint16_t colorB)
-{
-	for (uint16_t i = 0; i < graph->Height; i++)
-	{
-#if GRAPH_USE_BACKBUFFER
-		recover_line_XA[i] = LCD_BackBuffer_ReadPixel(xA, i);
-		recover_line_XB[i] = LCD_BackBuffer_ReadPixel(xB, i);
-
-		LCD_BackBuffer_DrawPixel(xA, i, colorA);
-		LCD_BackBuffer_DrawPixel(xB, i, colorB);
-#else
-		recover_line_XA[i] = LCD_ReadPixel(graph->X + xA, graph->Y + i);
-		recover_line_XB[i] = LCD_ReadPixel(graph->X + xB, graph->Y + i);
-
-		LCD_DrawPixel(graph->X + xA, graph->Y + i, colorA);
-		LCD_DrawPixel(graph->X + xB, graph->Y + i, colorB);
-#endif // GRAPH_USE_BACKBUFFER
-	}
-}
-
-void Graph_DrawCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t colorA, uint16_t yB, uint16_t colorB)
-{
-	for (uint16_t i = 0; i < graph->Width; i++)
-	{
-#if GRAPH_USE_BACKBUFFER
-		recover_line_YA[i] = LCD_BackBuffer_ReadPixel(i, yA);
-		recover_line_YB[i] = LCD_BackBuffer_ReadPixel(i, yB);
-
-		LCD_BackBuffer_DrawPixel(i, yA, colorA);
-		LCD_BackBuffer_DrawPixel(i, yB, colorB);
-#else
-		recover_line_YA[i] = LCD_ReadPixel(graph->X + i, graph->Y + yA);
-		recover_line_YB[i] = LCD_ReadPixel(graph->X + i, graph->Y + yB);
-
-		LCD_DrawPixel(graph->X + i, graph->Y + yA, colorA);
-		LCD_DrawPixel(graph->X + i, graph->Y + yB, colorB);
-#endif // GRAPH_USE_BACKBUFFER
-	}
-}
-
 void Graph_RecoverGrid(const Graph_TypeDef *graph, const uint16_t *data)
 {
 	uint16_t y0, y1, temp;
@@ -1051,6 +1025,56 @@ static inline uint16_t Graph_GetRecoverPixelColor(const Graph_TypeDef *graph, ui
 	}
 
 	return graph->BackgroudColor;
+}
+
+void Graph_DrawCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t colorA, uint16_t xB, uint16_t colorB)
+{
+	for (uint16_t i = 0; i < graph->Height; i++)
+	{
+#if GRAPH_USE_BACKBUFFER
+		recover_line_XA[i] = LCD_BackBuffer_ReadPixel(xA, i);
+		recover_line_XB[i] = LCD_BackBuffer_ReadPixel(xB, i);
+#else
+		recover_line_XA[i] = LCD_ReadPixel(graph->X + xA, graph->Y + i);
+		recover_line_XB[i] = LCD_ReadPixel(graph->X + xB, graph->Y + i);
+#endif // GRAPH_USE_BACKBUFFER
+	}
+
+	for (uint16_t i = 0; i < graph->Height; i++)
+	{
+#if GRAPH_USE_BACKBUFFER
+		LCD_BackBuffer_DrawPixel(xA, i, colorA);
+		LCD_BackBuffer_DrawPixel(xB, i, colorB);
+#else
+		LCD_DrawPixel(graph->X + xA, graph->Y + i, colorA);
+		LCD_DrawPixel(graph->X + xB, graph->Y + i, colorB);
+#endif // GRAPH_USE_BACKBUFFER
+	}
+}
+
+void Graph_DrawCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t colorA, uint16_t yB, uint16_t colorB)
+{
+	for (uint16_t i = 0; i < graph->Width; i++)
+	{
+#if GRAPH_USE_BACKBUFFER
+		recover_line_YA[i] = LCD_BackBuffer_ReadPixel(i, yA);
+		recover_line_YB[i] = LCD_BackBuffer_ReadPixel(i, yB);
+#else
+		recover_line_YA[i] = LCD_ReadPixel(graph->X + i, graph->Y + yA);
+		recover_line_YB[i] = LCD_ReadPixel(graph->X + i, graph->Y + yB);
+#endif // GRAPH_USE_BACKBUFFER
+	}
+
+	for (uint16_t i = 0; i < graph->Width; i++)
+	{
+#if GRAPH_USE_BACKBUFFER
+		LCD_BackBuffer_DrawPixel(i, yA, colorA);
+		LCD_BackBuffer_DrawPixel(i, yB, colorB);
+#else
+		LCD_DrawPixel(graph->X + i, graph->Y + yA, colorA);
+		LCD_DrawPixel(graph->X + i, graph->Y + yB, colorB);
+#endif // GRAPH_USE_BACKBUFFER
+	}
 }
 
 void Graph_RecoverCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t xB)

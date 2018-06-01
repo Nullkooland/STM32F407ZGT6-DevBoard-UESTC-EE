@@ -27,15 +27,15 @@ void DMA_Init(void)
 	hdma_m2m.Init.Channel = DMA_CHANNEL_0;
 	hdma_m2m.Init.Direction = DMA_MEMORY_TO_MEMORY;
 	hdma_m2m.Init.PeriphInc = DMA_PINC_ENABLE;
-	hdma_m2m.Init.MemInc = DMA_MINC_ENABLE;
-	hdma_m2m.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-	hdma_m2m.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+	hdma_m2m.Init.MemInc = DMA_MINC_DISABLE;
+	hdma_m2m.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+	hdma_m2m.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
 	hdma_m2m.Init.Mode = DMA_NORMAL;
-	hdma_m2m.Init.Priority = DMA_PRIORITY_LOW;
+	hdma_m2m.Init.Priority = DMA_PRIORITY_MEDIUM;
 	hdma_m2m.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
 	hdma_m2m.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-	hdma_m2m.Init.MemBurst = DMA_MBURST_SINGLE;
-	hdma_m2m.Init.PeriphBurst = DMA_PBURST_SINGLE;
+	hdma_m2m.Init.MemBurst = DMA_MBURST_INC4;
+	hdma_m2m.Init.PeriphBurst = DMA_MBURST_INC4;
 	if (HAL_DMA_Init(&hdma_m2m) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);

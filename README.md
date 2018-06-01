@@ -1,0 +1,3 @@
+# STM32F407ZGT6-DevBoard-UESTC-EE
+UESTC电工科协 公用STM32F407ZGT6开发板HAL库驱动
+常用硬件外设驱动、显示界面

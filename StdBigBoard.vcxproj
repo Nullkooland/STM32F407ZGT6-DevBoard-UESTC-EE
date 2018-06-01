@@ -103,7 +103,6 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="main.c" />
     <ClCompile Include="Src\ad7606.c" />
     <ClCompile Include="Src\ad9851.c" />
     <ClCompile Include="Src\ad9959.c" />
@@ -117,6 +116,7 @@
     <ClCompile Include="Src\fsmc.c" />
     <ClCompile Include="Src\i2c.c" />
     <ClCompile Include="Src\lcd.c" />
+    <ClCompile Include="Src\main.c" />
     <ClCompile Include="Src\number_input.c" />
     <ClCompile Include="Src\pe4302.c" />
     <ClCompile Include="Src\sdcard.c" />

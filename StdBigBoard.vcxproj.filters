@@ -657,9 +657,6 @@
     <None Include="stm32.xml">
       <Filter>VisualGDB settings</Filter>
     </None>
-    <ClCompile Include="main.c">
-      <Filter>Source files</Filter>
-    </ClCompile>
     <ClCompile Include="$(BSP_ROOT)\STM32F4xxxx\STM32F4xx_HAL_Driver\Src\Legacy\stm32f4xx_hal_can.c">
       <Filter>Source files\Device-specific files\HAL</Filter>
     </ClCompile>
@@ -804,6 +801,9 @@
     </ClCompile>
     <ClCompile Include="Src\number_input.c">
       <Filter>Source files\Applications</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\main.c">
+      <Filter>Source files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

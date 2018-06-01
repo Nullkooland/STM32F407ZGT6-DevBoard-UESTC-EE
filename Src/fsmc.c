@@ -65,7 +65,7 @@ void FSMC_Init(void)
 	/* ReadWrite Timing */
 	RW_Timing.AddressSetupTime = 0x01;		//HCLK = 168MHz об 6ns * 2 = 12ns
 	RW_Timing.AddressHoldTime = 0x00;
-	RW_Timing.DataSetupTime = 0x02;			//HCLK = 168MHz об 6ns * 3 = 18ns
+	RW_Timing.DataSetupTime = 0x12;			//HCLK = 168MHz об 6ns * 23 = 162ns
 	RW_Timing.BusTurnAroundDuration = 0x00;
 	RW_Timing.CLKDivision = 0x00;
 	RW_Timing.DataLatency = 0x00;

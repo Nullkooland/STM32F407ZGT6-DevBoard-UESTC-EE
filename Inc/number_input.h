@@ -10,7 +10,6 @@
 _Bool GetInputFloat(float *inputVal);
 _Bool GetInputInt(uint32_t *inputVal);
 
-
 static _Bool GetUserInput(void);
 static inline void NumberInput(uint8_t num);
 static inline void DotInput(void);
