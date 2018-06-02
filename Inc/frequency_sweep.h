@@ -96,8 +96,8 @@ static void UpdateFreqInfoDispaly(void);
 static void UpdateOutputAmp(void);
 
 //Inline Functions
-static inline void FreqParameterDisplay(uint8_t i, _Bool isSlected);
-static inline void CursorDisplay(void);
+static inline void FreqParametersDisplay(uint8_t i, _Bool isSlected);
+static inline void CursorParametersDisplay(void);
 
 //ZLG7290 Keyboard Driver
 extern void ZLG7290_Init();

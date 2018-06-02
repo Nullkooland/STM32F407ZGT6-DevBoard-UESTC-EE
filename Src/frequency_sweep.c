@@ -123,6 +123,8 @@ void FreqSweep_Init(void)
 	LCD_ShowString(AMPBOX_X + 8, AMPBOX_Y + 8, 16, "当前输出幅度:", WHITE);
 	LCD_ShowString(AMPBOX_X + 8, AMPBOX_Y + 32, 16, "幅度调节步进:", WHITE);
 
+	sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
+	LCD_ShowString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
 	UpdateOutputAmp();
 
 	//光标读数窗
@@ -138,9 +140,10 @@ void FreqSweep_Init(void)
 	LCD_ShowString(CURSORBOX_X + 8, CURSORBOX_Y + 168, 16, "Δ- 增益:", WHITE);
 
 	//光标初始化
+	is_cursor_select_A = 1;
 	cursor_XA = GRID_WIDTH / 3;
 	cursor_XB = GRID_WIDTH * 2 / 3;
-	CursorDisplay();
+	CursorParametersDisplay();
 }
 
 static void UpdateFreqInfoDispaly(void)
@@ -180,7 +183,7 @@ static inline void UpdateOutputAmp(void)
 	LCD_ShowString(AMPBOX_X + 118, AMPBOX_Y + 8, 16, str_buffer, LIGHTGRAY);
 }
 
-static inline void FreqParameterDisplay(uint8_t i, _Bool isSlected)
+static inline void FreqParametersDisplay(uint8_t i, _Bool isSlected)
 {
 	uint16_t back_color = (isSlected) ? LIGHTGRAY : BLACK;
 	uint16_t font_color = (isSlected) ? BLACK : LIGHTGRAY;
@@ -200,7 +203,7 @@ static void SetFreqParameters(void)
 	backup_sweep_freq[1] = sweep_freq[1];
 	backup_sweep_freq[2] = sweep_freq[2];
 
-	FreqParameterDisplay(i, 1);
+	FreqParametersDisplay(i, 1);
 
 	for (;;)
 	{
@@ -208,7 +211,7 @@ static void SetFreqParameters(void)
 		{
 		case 18:
 
-			FreqParameterDisplay(i, 0);
+			FreqParametersDisplay(i, 0);
 
 			if (i == 0) {
 				i = 2;
@@ -217,12 +220,12 @@ static void SetFreqParameters(void)
 				--i;
 			}
 
-			FreqParameterDisplay(i, 1);
+			FreqParametersDisplay(i, 1);
 			break;
 
 		case 19:
 
-			FreqParameterDisplay(i, 0);
+			FreqParametersDisplay(i, 0);
 
 			if (i == 2) {
 				i = 0;
@@ -231,14 +234,14 @@ static void SetFreqParameters(void)
 				++i;
 			}
 
-			FreqParameterDisplay(i, 1);
+			FreqParametersDisplay(i, 1);
 			break;
 
 		case 20:
 
 			if (GetInputFloat(&input_val)) {
-				sweep_freq[i] = input_val * 1000;
-				FreqParameterDisplay(i, 1);
+				sweep_freq[i] = input_val * 1000U;
+				FreqParametersDisplay(i, 1);
 			}
 			break;
 
@@ -274,7 +277,7 @@ static void FreqSweepAndSampling()
 
 	for (uint16_t i = 0; i < sample_count; i++)
 	{
-		AD9959_SetFreq(OUTPUT_CHANNEL, output_freq);
+		AD9959_SetFreq(OUTPUT_CHANNEL, output_freq * 1000U);
 
 		Delay_us(25);
 		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &data_values[i]);
@@ -326,7 +329,7 @@ void FreqSweep_Start()
 			is_cursor_select_A = !is_cursor_select_A;
 
 			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
-			CursorDisplay();
+			CursorParametersDisplay();
 			break;
 
 		case 34:
@@ -341,7 +344,7 @@ void FreqSweep_Start()
 				cursor_XB = (cursor_XB <= 0) ? GRID_WIDTH - 1 : cursor_XB;
 			}
 
-			CursorDisplay();
+			CursorParametersDisplay();
 			break;
 
 		case 35:
@@ -356,12 +359,13 @@ void FreqSweep_Start()
 				cursor_XB %= GRID_WIDTH;
 			}
 
-			CursorDisplay();
+			CursorParametersDisplay();
 			break;
 		}
 		
 		FreqSweepAndSampling();
 
+		Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
 		Graph_RecoverGrid(&graph, display_values);
 
 		//将采样数据线性插值到图表区相同的宽度以便于显示
@@ -369,8 +373,15 @@ void FreqSweep_Start()
 			uint32_t x = (i << 20) / GRID_WIDTH * sample_count;
 			display_values[i] = arm_linear_interp_q15(data_values, x, sample_count) + 2048U;
 		}
-
 		arm_shift_q15(display_values, -4, display_values, GRID_WIDTH);
+
+		if (is_cursor_select_A) {
+			Graph_DrawCursorX(&graph, cursor_XA, YELLOW, cursor_XB, BROWN);
+		}
+		else {
+			Graph_DrawCursorX(&graph, cursor_XA, BROWN, cursor_XB, YELLOW);
+		}
+
 		Graph_DrawCurve(&graph, display_values, RED);
 
 #if GRAPH_USE_BACKBUFFER
@@ -381,16 +392,35 @@ void FreqSweep_Start()
 	}
 }
 
-static inline void CursorDisplay(void)
+static inline void CursorParametersDisplay(void)
 {
-	LCD_FillRect(CURSORBOX_X + 88, CURSORBOX_Y + 8, 8, 16, BLACK);
+	//用大黑块进行[数据删除]
+	LCD_FillRect(CURSORBOX_X + 85, CURSORBOX_Y + 8, 88, 180, BLACK);
 
-	if (is_cursor_select_A) {
-		Graph_DrawCursorX(&graph, cursor_XA, YELLOW, cursor_XB, BROWN);
-		LCD_ShowChar_ASCII(CURSORBOX_X + 88, CURSORBOX_Y + 8, 16, 'A', YELLOW);
-	}
-	else {
-		Graph_DrawCursorX(&graph, cursor_XA, BROWN, cursor_XB, YELLOW);
-		LCD_ShowChar_ASCII(CURSORBOX_X + 88, CURSORBOX_Y + 8, 16, 'B', YELLOW);
-	}
+	uint8_t mark = (is_cursor_select_A) ? 'A' : 'B';
+	LCD_ShowChar_ASCII(CURSORBOX_X + 85, CURSORBOX_Y + 8, 16, mark, YELLOW);
+
+	float freq_A = (sweep_freq[0] + (sweep_freq[1] - sweep_freq[0]) * cursor_XA / GRID_WIDTH) * 0.001f;
+	float freq_B = (sweep_freq[0] + (sweep_freq[1] - sweep_freq[0]) * cursor_XB / GRID_WIDTH) * 0.001f;
+
+	sprintf(str_buffer, "%-6.3f MHz", freq_A);
+	LCD_ShowString(CURSORBOX_X + 85, CURSORBOX_Y + 40, 16, str_buffer, LIGHTGRAY);
+
+	sprintf(str_buffer, "%-6.3f MHz", freq_B);
+	LCD_ShowString(CURSORBOX_X + 85, CURSORBOX_Y + 64, 16, str_buffer, LIGHTGRAY);
+
+	sprintf(str_buffer, "%-6.3f MHz", freq_B - freq_A);
+	LCD_ShowString(CURSORBOX_X + 85, CURSORBOX_Y + 88, 16, str_buffer, LIGHTGRAY);
+
+	float gain_A = (display_values[cursor_XA] - 200) * 0.2f;
+	float gain_B = (display_values[cursor_XB] - 200) * 0.2f;
+
+	sprintf(str_buffer, "%-6.3f dB", gain_A);
+	LCD_ShowString(CURSORBOX_X + 85, CURSORBOX_Y + 120, 16, str_buffer, LIGHTGRAY);
+
+	sprintf(str_buffer, "%-6.3f dB", gain_B);
+	LCD_ShowString(CURSORBOX_X + 85, CURSORBOX_Y + 144, 16, str_buffer, LIGHTGRAY);
+
+	sprintf(str_buffer, "%-6.3f dB", gain_B - gain_A);
+	LCD_ShowString(CURSORBOX_X + 85, CURSORBOX_Y + 168, 16, str_buffer, LIGHTGRAY);
 }
