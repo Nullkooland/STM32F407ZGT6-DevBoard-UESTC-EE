@@ -35,7 +35,7 @@ void FreqSweep_Init(void)
 	AD9959_Init();
 	ADC1_Init();
 
-	AD9959_SetFreq(AD9959_CHANNEL_2, 1000000U);
+	AD9959_SetFreq(OUTPUT_CHANNEL, 10000000U);
 
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.Pin = GPIO_PIN_10;
@@ -49,9 +49,9 @@ void FreqSweep_Init(void)
 	output_amp = 50;
 	amp_step = 1;
 
-	sweep_freq[0] = 4000;
-	sweep_freq[1] = 50000;
-	sweep_freq[2] = 100;
+	sweep_freq[0] = 0;
+	sweep_freq[1] = 10000;
+	sweep_freq[2] = 50;
 	sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
 
 	//GUI 初始化
@@ -144,6 +144,135 @@ void FreqSweep_Init(void)
 	cursor_XA = GRID_WIDTH / 3;
 	cursor_XB = GRID_WIDTH * 2 / 3;
 	CursorParametersDisplay();
+}
+
+void FreqSweep_Start()
+{
+	for (;;)
+	{
+		switch (ZLG7290_ReadKey())
+		{
+		case 17:
+			SetFreqParameters();
+			break;
+
+		case 25:
+			++amp_step;
+			amp_step %= 5;
+
+			sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
+
+			LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 32, 48, 16, BLACK);
+			LCD_ShowString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
+			break;
+
+		case 26:
+			if (output_amp > amp_step + 2) {
+				output_amp -= amp_step + 1;
+			}
+
+			UpdateOutputAmp();
+			break;
+
+		case 27:
+			if (output_amp + amp_step < 50) {
+				output_amp += amp_step + 1;
+			}
+
+			UpdateOutputAmp();
+			break;
+
+		case 33:
+			is_cursor_select_A = !is_cursor_select_A;
+
+			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
+			CursorParametersDisplay();
+			break;
+
+		case 34:
+			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
+
+			if (is_cursor_select_A) {
+				cursor_XA -= 2;
+				cursor_XA = (cursor_XA <= 0) ? GRID_WIDTH - 1 : cursor_XA;
+			}
+			else {
+				cursor_XB -= 2;
+				cursor_XB = (cursor_XB <= 0) ? GRID_WIDTH - 1 : cursor_XB;
+			}
+
+			CursorParametersDisplay();
+			break;
+
+		case 35:
+			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
+
+			if (is_cursor_select_A) {
+				cursor_XA += 2;
+				cursor_XA %= GRID_WIDTH;
+			}
+			else {
+				cursor_XB += 2;
+				cursor_XB %= GRID_WIDTH;
+			}
+
+			CursorParametersDisplay();
+			break;
+		}
+
+		FreqSweepAndSampling();
+
+		Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
+		Graph_RecoverGrid(&graph, display_values);
+
+		//将采样数据线性插值到图表区相同的宽度以便于显示
+		for (uint16_t i = 0; i < GRID_WIDTH; i++) {
+			//uint32_t x = (i << 20) * sample_count / GRID_WIDTH; //Watch for overflow dude!
+			uint32_t x = (i << 20) / GRID_WIDTH * sample_count;
+			display_values[i] =
+				(arm_linear_interp_q15(data_values, x, sample_count) - zero_gain_adc_code[50 - output_amp] + 1241) * 0.161133f;
+		}
+		//arm_scale_q15(display_values, 165, -10, display_values, GRID_WIDTH);
+		//arm_shift_q15(display_values, -4, display_values, GRID_WIDTH);
+
+		if (is_cursor_select_A) {
+			Graph_DrawCursorX(&graph, cursor_XA, YELLOW, cursor_XB, BROWN);
+		}
+		else {
+			Graph_DrawCursorX(&graph, cursor_XA, BROWN, cursor_XB, YELLOW);
+		}
+
+		Graph_DrawCurve(&graph, display_values, RED);
+
+#if GRAPH_USE_BACKBUFFER
+		LCD_BackBuffer_Update();
+#endif // GRAPH_USE_BACKBUFFER
+
+		Delay_ms(33);
+	}
+}
+
+static void FreqSweepAndSampling(void)
+{
+	uint32_t output_freq = sweep_freq[0];
+
+	//ADC开始采样对数检波电平
+	HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
+
+	for (uint16_t i = 0; i < sample_count; i++)
+	{
+		//更新DDS输出频率
+		AD9959_SetFreq(OUTPUT_CHANNEL, output_freq * 1000U);
+		//等待检波电平稳定
+		Delay_us(360);
+		//记录采样点（带均值滤波）
+		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &data_values[i]);
+		//频率递进
+		output_freq += sweep_freq[2];
+	}
+
+	//ADC停止采样
+	HAL_ADC_Stop_DMA(&hadc1);
 }
 
 static void UpdateFreqInfoDispaly(void)
@@ -268,129 +397,34 @@ static void SetFreqParameters(void)
 	}
 }
 
-static void FreqSweepAndSampling()
+/*
+void GetCodeTable(void)
 {
-	uint32_t output_freq = sweep_freq[0];
+	extern UART_HandleTypeDef huart1;
+	uint16_t amp_ = 50;
+	uint16_t code;
+	char strbuff[1024] = { 0 };
 
-	//ADC开始采样对数检波电平
+	AD9959_SetFreq(OUTPUT_CHANNEL, 10000000U);
 	HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
 
-	for (uint16_t i = 0; i < sample_count; i++)
+	for (uint16_t i = 0; i < 49; i++)
 	{
-		AD9959_SetFreq(OUTPUT_CHANNEL, output_freq * 1000U);
+		PE4302_SetLoss(amp_table[50 - amp_][0]);
+		AD9959_SetAmp(OUTPUT_CHANNEL, amp_table[50 - amp_][1]);
 
-		Delay_us(25);
-		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &data_values[i]);
+		Delay_us(5000);
+		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &code);
 
-		output_freq += sweep_freq[2];
-	}
-
-	//ADC停止采样
-	HAL_ADC_Stop_DMA(&hadc1);
-}
-
-void FreqSweep_Start()
-{
-	for (;;)
-	{
-		switch (ZLG7290_ReadKey())
-		{
-		case 17:
-			SetFreqParameters();
-			break;
-
-		case 25:
-			++amp_step;
-			amp_step %= 5;
-
-			sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
-
-			LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 32, 48, 16, BLACK);
-			LCD_ShowString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
-			break;
-
-		case 26:
-			if (output_amp > amp_step + 2) {
-				output_amp -= amp_step + 1;
-			}
-
-			UpdateOutputAmp();
-			break;
-
-		case 27:
-			if (output_amp + amp_step < 50) {
-				output_amp += amp_step + 1;
-			}
-
-			UpdateOutputAmp();
-			break;
-
-		case 33:
-			is_cursor_select_A = !is_cursor_select_A;
-
-			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
-			CursorParametersDisplay();
-			break;
-
-		case 34:
-			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
-
-			if (is_cursor_select_A) {
-				cursor_XA -= 2;
-				cursor_XA = (cursor_XA <= 0) ? GRID_WIDTH - 1 : cursor_XA;
-			}
-			else {
-				cursor_XB -= 2;
-				cursor_XB = (cursor_XB <= 0) ? GRID_WIDTH - 1 : cursor_XB;
-			}
-
-			CursorParametersDisplay();
-			break;
-
-		case 35:
-			Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
-
-			if (is_cursor_select_A) {
-				cursor_XA += 2;
-				cursor_XA %= GRID_WIDTH;
-			}
-			else {
-				cursor_XB += 2;
-				cursor_XB %= GRID_WIDTH;
-			}
-
-			CursorParametersDisplay();
-			break;
-		}
+		sprintf(strbuff+ 6 * i, "%u, ", code);
 		
-		FreqSweepAndSampling();
-
-		Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
-		Graph_RecoverGrid(&graph, display_values);
-
-		//将采样数据线性插值到图表区相同的宽度以便于显示
-		for (uint16_t i = 0; i < GRID_WIDTH; i++) {
-			uint32_t x = (i << 20) / GRID_WIDTH * sample_count;
-			display_values[i] = arm_linear_interp_q15(data_values, x, sample_count) + 2048U;
-		}
-		arm_shift_q15(display_values, -4, display_values, GRID_WIDTH);
-
-		if (is_cursor_select_A) {
-			Graph_DrawCursorX(&graph, cursor_XA, YELLOW, cursor_XB, BROWN);
-		}
-		else {
-			Graph_DrawCursorX(&graph, cursor_XA, BROWN, cursor_XB, YELLOW);
-		}
-
-		Graph_DrawCurve(&graph, display_values, RED);
-
-#if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_Update();
-#endif // GRAPH_USE_BACKBUFFER
-
-		Delay_ms(33);
+		--amp_;
 	}
+
+	HAL_ADC_Stop_DMA(&hadc1);
+	HAL_UART_Transmit(&huart1, strbuff, strlen(strbuff), 0xFFFF);
 }
+*/
 
 static inline void CursorParametersDisplay(void)
 {

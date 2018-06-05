@@ -12,7 +12,7 @@ UART_RxBuffer_TypeDef huart1_buffer;
 /* Redirect std ostream to uart1 */
 size_t _write(int file, uint8_t *pBuffer, size_t len)
 {
-	HAL_UART_Transmit(&huart1, pBuffer, len, 0xFF);
+	HAL_UART_Transmit(&huart1, pBuffer, len, 0xFFFF);
 	return len;
 }
 

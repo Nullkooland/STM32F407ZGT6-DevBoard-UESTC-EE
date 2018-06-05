@@ -2,11 +2,11 @@
 #include <stm32f4xx_hal.h>
 #include "ad9959.h"
 
-#define	OUTPUT_CHANNEL		AD9959_CHANNEL_2
+#define	OUTPUT_CHANNEL		AD9959_CHANNEL_1
 
-#define ADC_SAMPLE_COUNT	32
+#define ADC_SAMPLE_COUNT	8
 #define MAX_SAMPLE_COUNT	2048
-#define MIN_SAMPLE_COUNT	128
+#define MIN_SAMPLE_COUNT	100
 
 #define GRID_X				40
 #define GRID_Y				10
@@ -32,65 +32,74 @@
 
 static const uint16_t amp_table[][2] =
 {
-	{ 2, 980},		//100mV
-	{ 3, 1023},		//98mV
-	{ 3, 1010},		//96mV
-	{ 3, 995 },		//94mV
-	{ 3, 975 },		//92mV
-	{ 3, 950 },		//90mV
-	{ 3, 930 },		//88mV
-	{ 4, 1005 },	//86mV
-	{ 4, 983 },		//84mV
-	{ 5, 1023 },	//82mV
-	{ 5, 1000 },	//80mV
-	{ 6, 1023 },	//78mV
-	{ 6, 1010 },	//76mV
-	{ 6, 981 },		//74mV
-	{ 7, 1023 },	//72mV
-	{ 7, 996 },		//70mV
-	{ 8, 1023 },	//68mV
-	{ 8, 1010 },	//66mV
-	{ 8, 979 },		//64mV
-	{ 9, 1010 },	//62mV
-	{ 10, 1023 },	//60mV
-	{ 10, 1000 },	//58mV
-	{ 11, 1023 },	//56mV
-	{ 11, 998 },	//54mV
-	{ 12, 1023 },	//52mV
-	{ 12, 995 },	//50mV
-	{ 13, 1012 },	//48mV
-	{ 14, 1023 },	//46mV
-	{ 14, 980 },	//44mV
-	{ 16, 1023 },	//42mV
-	{ 16, 970 },	//40mV
-	{ 17, 1023 },	//38mV
-	{ 18, 1023 },	//36mV
-	{ 19, 1023 },	//34mV
-	{ 20, 1023 },	//32mV
-	{ 21, 1023 },	//30mV
-	{ 22, 1023 },	//28mV
-	{ 23, 1008 },	//26mV
-	{ 24, 988 },	//24mV
-	{ 26, 1023 },	//22mV
-	{ 27, 980 },	//20mV
-	{ 29, 1000 },	//18mV
-	{ 33, 1023 },	//16mV
-	{ 35, 1000 },	//14mV
-	{ 37, 1000 },	//12mV
-	{ 40, 990 },	//10mV
-	{ 44, 1008 },	//8mV
-	{ 50, 1023 },	//6mV
-	{ 57, 1023 },	//4mV
+	{ 15, 1018 },	//100mV
+	{ 16, 1020 },	//98mV
+	{ 16, 1000 },	//96mV
+	{ 16, 975 },	//94mV
+	{ 17, 1010 },	//92mV
+	{ 17, 985 },	//90mV
+	{ 18, 1015 },	//88mV
+	{ 18, 990 },	//86mV
+	{ 19, 1023 },	//84mV
+	{ 19, 1003 },	//82mV
+	{ 19, 971 },	//80mV
+	{ 19, 945 },	//78mV
+	{ 20, 1018 },	//76mV
+	{ 20, 992 },	//74mV
+	{ 21, 1018 },	//72mV
+	{ 21, 991 },	//70mV
+	{ 22, 1015 },	//68mV
+	{ 22, 983 },	//66mV
+	{ 23, 1008 },	//64mV
+	{ 23, 974 },	//62mV
+	{ 24, 1010 },	//60mV
+	{ 24, 978 },	//58mV
+	{ 25, 994 },	//56mV
+	{ 26, 1012 },	//54mV
+	{ 27, 1023 },	//52mV
+	{ 27, 985 },	//50mV
+	{ 28, 1020 },	//48mV
+	{ 28, 980 },	//46mV
+	{ 29, 990 },	//44mV
+	{ 30, 990 },	//42mV
+	{ 32, 986 },	//40mV
+	{ 33, 1023 },	//38mV
+	{ 34, 1017 },	//36mV
+	{ 35, 1015 },	//34mV
+	{ 35, 956 },	//32mV
+	{ 36, 985 },	//30mV
+	{ 38, 1023 },	//28mV
+	{ 39, 1007 },	//26mV
+	{ 40, 1001 },	//24mV
+	{ 42, 1023 },	//22mV
+	{ 43, 980 },	//20mV
+	{ 45, 1023 },	//18mV
+	{ 47, 1012 },	//16mV
+	{ 50, 1007 },	//14mV
+	{ 52, 995 },	//12mV
+	{ 56, 1023 },	//10mV
+	{ 59, 978 },	//8mV
+	{ 63, 942 },	//6mV
+	{ 63, 625 },	//4mV
+};
+
+static const uint16_t zero_gain_adc_code[] =
+{ 
+	2391, 2384, 2380, 2372, 2369, 2362, 2356, 
+	2350, 2342, 2338, 2327, 2320, 2323, 2318, 
+	2307, 2300, 2290, 2283, 2274, 2264, 2257, 
+	2248, 2236, 2226, 2213, 2203, 2193, 2183, 
+	2169, 2156, 2125, 2119, 2102, 2087, 2072, 
+	2063, 2044, 2024, 2008, 1984, 1960, 1941, 
+	1905, 1860, 1824, 1768, 1706, 1636, 1532,
 };
 
 
 void FreqSweep_Init(void);
-/*
-void FreqSweep_Test(void);
 void FreqSweep_Start(void);
-void FreqPoint_Output(void);
-*/
+//void FreqPoint_Output(void);
 
+static void FreqSweepAndSampling(void);
 static void SetFreqParameters(void);
 static void UpdateFreqInfoDispaly(void);
 static void UpdateOutputAmp(void);
@@ -110,7 +119,7 @@ extern void PE4302_SetLoss(uint8_t twoTimes_dB);
 extern void AD9959_Init(void);
 extern void AD9959_SetFreq(uint8_t channel, uint32_t freq);
 extern void AD9959_SetAmp(uint8_t channel, uint16_t amp);
-
+//On Chip ADC
 extern void ADC1_Init();
 
 extern void Delay_ms(uint16_t ms);

@@ -69,16 +69,11 @@ int main(void)
 		*/
 
 		if (huart1_buffer.RxEnd) {
-			float loss;
-			uint16_t amp = 1023;
-			sscanf(huart1_buffer.Data, "%f, %u", &loss, &amp);
-
-			loss = (loss > 0.0f) ? loss : 0.0f;
-			loss = (loss < 31.51f) ? loss : 31.5f;
-
-			uint8_t _2xLoss = (uint8_t)(loss * 2.0f);
-			PE4302_SetLoss(_2xLoss);
-			AD9959_SetAmp(AD9959_CHANNEL_2, amp);
+			uint16_t val;
+			sscanf(huart1_buffer.Data, "%u", &val);
+			PE4302_SetLoss(val);
+			sscanf(huart1_buffer.Data + 4, "%u", &val);
+			AD9959_SetAmp(AD9959_CHANNEL_1, val);
 
 			huart1_buffer.RxEnd = 0;
 		}

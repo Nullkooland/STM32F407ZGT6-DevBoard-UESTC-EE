@@ -7,7 +7,7 @@
 #include <arm_math.h>
 #include <string.h>
 
-/* ILI9341 TFT LCD驱动程序 */
+/* NT35510 TFT LCD驱动程序 */
 //////////////////////////////////////////////////////////////////////////////////	 
 
 extern DMA_HandleTypeDef hdma_m2m;
