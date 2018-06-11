@@ -26,6 +26,7 @@ static uint32_t sweep_freq[3];		// 0:起始频率, 1:终止频率, 2:频率步进
 extern ADC_HandleTypeDef hadc1;
 static uint16_t adc_sampling_values[ADC_SAMPLE_COUNT];
 static uint16_t data_values[MAX_SAMPLE_COUNT];
+static uint16_t normalize_values[MAX_SAMPLE_COUNT];
 static uint16_t sample_count;
 
 void FreqSweep_Init(void)
@@ -49,9 +50,9 @@ void FreqSweep_Init(void)
 	output_amp = 50;
 	amp_step = 1;
 
-	sweep_freq[0] = 0;
-	sweep_freq[1] = 10000;
-	sweep_freq[2] = 50;
+	sweep_freq[0] = 1000;
+	sweep_freq[1] = 50000;
+	sweep_freq[2] = 100;
 	sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
 
 	//GUI 初始化
@@ -152,6 +153,14 @@ void FreqSweep_Start()
 	{
 		switch (ZLG7290_ReadKey())
 		{
+		case 9:
+			//归一化校准
+			FreqSweepAndSampling();
+			for (uint16_t i = 0; i < sample_count; i++) {
+				normalize_values[i] = data_values[i] - 1241;
+			}
+			break;
+
 		case 17:
 			SetFreqParameters();
 			break;
@@ -225,12 +234,18 @@ void FreqSweep_Start()
 		Graph_RecoverCursorX(&graph, cursor_XA, cursor_XB);
 		Graph_RecoverGrid(&graph, display_values);
 
+		//将采样数据减去归一化值
+		arm_sub_q15(data_values, normalize_values, data_values, sample_count);
+		//将采样数据缩放到图表区域范围中
+		for (size_t i = 0; i < sample_count; i++) {
+			data_values[i] *= 0.161133f;
+		}
+
 		//将采样数据线性插值到图表区相同的宽度以便于显示
 		for (uint16_t i = 0; i < GRID_WIDTH; i++) {
 			//uint32_t x = (i << 20) * sample_count / GRID_WIDTH; //Watch for overflow dude!
 			uint32_t x = (i << 20) / GRID_WIDTH * sample_count;
-			display_values[i] =
-				(arm_linear_interp_q15(data_values, x, sample_count) - zero_gain_adc_code[50 - output_amp] + 1241) * 0.161133f;
+			display_values[i] = arm_linear_interp_q15(data_values, x, sample_count);
 		}
 		//arm_scale_q15(display_values, 165, -10, display_values, GRID_WIDTH);
 		//arm_shift_q15(display_values, -4, display_values, GRID_WIDTH);
@@ -264,7 +279,7 @@ static void FreqSweepAndSampling(void)
 		//更新DDS输出频率
 		AD9959_SetFreq(OUTPUT_CHANNEL, output_freq * 1000U);
 		//等待检波电平稳定
-		Delay_us(360);
+		Delay_us(320);
 		//记录采样点（带均值滤波）
 		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &data_values[i]);
 		//频率递进
@@ -396,16 +411,15 @@ static void SetFreqParameters(void)
 		Delay_ms(33);
 	}
 }
-
 /*
-void GetCodeTable(void)
+static void GetCodeTable(void)
 {
 	extern UART_HandleTypeDef huart1;
 	uint16_t amp_ = 50;
 	uint16_t code;
 	char strbuff[1024] = { 0 };
 
-	AD9959_SetFreq(OUTPUT_CHANNEL, 10000000U);
+	AD9959_SetFreq(OUTPUT_CHANNEL, 20000000U);
 	HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
 
 	for (uint16_t i = 0; i < 49; i++)

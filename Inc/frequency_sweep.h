@@ -83,18 +83,6 @@ static const uint16_t amp_table[][2] =
 	{ 63, 625 },	//4mV
 };
 
-static const uint16_t zero_gain_adc_code[] =
-{ 
-	2391, 2384, 2380, 2372, 2369, 2362, 2356, 
-	2350, 2342, 2338, 2327, 2320, 2323, 2318, 
-	2307, 2300, 2290, 2283, 2274, 2264, 2257, 
-	2248, 2236, 2226, 2213, 2203, 2193, 2183, 
-	2169, 2156, 2125, 2119, 2102, 2087, 2072, 
-	2063, 2044, 2024, 2008, 1984, 1960, 1941, 
-	1905, 1860, 1824, 1768, 1706, 1636, 1532,
-};
-
-
 void FreqSweep_Init(void);
 void FreqSweep_Start(void);
 //void FreqPoint_Output(void);
@@ -103,6 +91,7 @@ static void FreqSweepAndSampling(void);
 static void SetFreqParameters(void);
 static void UpdateFreqInfoDispaly(void);
 static void UpdateOutputAmp(void);
+//static void GetCodeTable(void);
 
 //Inline Functions
 static inline void FreqParametersDisplay(uint8_t i, _Bool isSlected);
