@@ -636,7 +636,7 @@ void LCD_DrawPicture_Stream(uint16_t x, uint16_t y, uint16_t width, uint16_t hei
 	LCD_SetWindow(x, y, width, height);
 	WRITE_CMD(0x2C00);
 
-	HAL_DMA_Start(&hdma_m2m, pBuffer, FSMC_LCD_DATA, width * height);
+	HAL_DMA_Start(&hdma_m2m, pBuffer, FSMC_LCD_DATA, width * height / 2);
 	HAL_DMA_PollForTransfer(&hdma_m2m, HAL_DMA_FULL_TRANSFER, 0xFF);
 }
 
@@ -664,7 +664,7 @@ void LCD_DrawPicture_SD(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
 	f_close(&file);
 }
 
-void LCD_ShowNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t color)
+void LCD_DrawNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t color)
 {
 	uint8_t temp[12] = { 0 };
 	uint8_t i = 10;
@@ -685,10 +685,10 @@ void LCD_ShowNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t 
 		temp[i--] = '-';
 	}
 
-	LCD_ShowString(x, y, fontSize, temp + i + 1, color);
+	LCD_DrawString(x, y, fontSize, temp + i + 1, color);
 }
 
-void LCD_ShowBigNumber(uint16_t x, uint16_t y, uint8_t num, uint16_t color)
+void LCD_DrawBigNumber(uint16_t x, uint16_t y, uint8_t num, uint16_t color)
 {
 	uint16_t x0 = x;
 
@@ -715,7 +715,7 @@ void LCD_ShowBigNumber(uint16_t x, uint16_t y, uint8_t num, uint16_t color)
 
 }
 
-void LCD_ShowString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint16_t color)
+void LCD_DrawString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint16_t color)
 {
 	switch (fontSize)
 	{
@@ -736,12 +736,12 @@ void LCD_ShowString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint
 	{
 		if (*str < 0x80)
 		{
-			LCD_ShowChar_ASCII(x, y, fontSize, *(str++), color);
+			LCD_DrawChar_ASCII(x, y, fontSize, *(str++), color);
 			x += fontSize / 2;
 		}
 		else
 		{
-			LCD_ShowChar_GBK(x, y, fontSize, str++, color);
+			LCD_DrawChar_GBK(x, y, fontSize, str++, color);
 			str++;
 			x += fontSize;
 		}
@@ -750,23 +750,21 @@ void LCD_ShowString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint
 	f_close(&file);
 }
 
-void LCD_ShowChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, uint16_t color)
+void LCD_DrawChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, uint16_t color)
 {
 	uint16_t x0 = x;
 	uint8_t* buffer;
-
-	//得到字体一个字符对应点阵集所占的字节数
-	uint8_t bufferSize = ((fontSize >> 3) + ((fontSize % 8) ? 1 : 0)) * (fontSize >> 1);
 
 	ch = ch - ' ';
 	switch (fontSize)
 	{
 	case 16: buffer = ASCII_16x8[ch]; break;
+	case 24: buffer = ASCII_24x12[ch]; break;
 	case 32: buffer = ASCII_32x16[ch]; break;
 	default: return;
 	}
 
-	for (uint8_t i = 0; i < bufferSize; i++)
+	for (uint8_t i = 0; i < fontSize * 2; i++)
 	{
 		uint8_t temp = buffer[i];
 
@@ -788,7 +786,7 @@ void LCD_ShowChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, ui
 	}
 }
 
-void LCD_ShowChar_GBK(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t* ptr, uint16_t color)
+void LCD_DrawChar_GBK(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t* ptr, uint16_t color)
 {
 	uint8_t bufferSize = fontSize * fontSize >> 3;
 	uint16_t x0 = x, temp;
@@ -947,21 +945,25 @@ void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t 
 
 	for (uint16_t i = 0; i < graph->Width - 1; i++)
 	{
-		if (data[i] >= graph->Height || data[i + 1] >= graph->Height) {
+		if (data[i] < data[i + 1]) {
+			y0 = data[i];
+			y1 = data[i + 1];
+		}
+		else {
+			y1 = data[i];
+			y0 = data[i + 1];
+		}
+
+		if (y0 >= graph->Height) {
 			continue;
 		}
+		y1 = (y1 < graph->Height) ? y1 : graph->Height - 1;
 
-		y0 = graph->Height - data[i] - 1;
-		y1 = graph->Height - data[i + 1] - 1;
-
-		if (y0 > y1) {
-			temp = y0;
-			y0 = y1;
-			y1 = temp;
-		}
+		y0 = graph->Height - y0 - 1;
+		y1 = graph->Height - y1 - 1;
 
 #if GRAPH_USE_BACKBUFFER
-		for (uint16_t j = y0; j <= y1; j++) {
+		for (uint16_t j = y1; j <= y0; j++) {
 			LCD_BackBuffer_DrawPixel(i, j, color);
 		}
 #else
@@ -972,31 +974,92 @@ void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t 
 	}
 }
 
-void Graph_DrawCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t colorA, uint16_t xB, uint16_t colorB)
+void Graph_DrawLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color)
 {
 	for (uint16_t i = 0; i < graph->Height; i++)
 	{
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_DrawPixel(xA, i, colorA);
-		LCD_BackBuffer_DrawPixel(xB, i, colorB);
+		LCD_BackBuffer_DrawPixel(x, i, color);
 #else
-		LCD_DrawPixel(graph->X + xA, graph->Y + i, colorA);
-		LCD_DrawPixel(graph->X + xB, graph->Y + i, colorB);
+		LCD_DrawPixel(graph->X + x, graph->Y + i, color);
 #endif // GRAPH_USE_BACKBUFFER
 	}
 }
 
-void Graph_DrawCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t colorA, uint16_t yB, uint16_t colorB)
+void Graph_DrawDashedLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color)
+{
+	_Bool no_draw = 0;
+	uint8_t pixel_count = 0;
+
+	for (uint16_t i = 0; i < graph->Height; i++)
+	{
+		++pixel_count;
+
+		if (no_draw && pixel_count > 8) {
+			no_draw = 0;
+			pixel_count = 0;
+		}
+
+		if (!no_draw && pixel_count > 16) {
+			no_draw = 1;
+			pixel_count = 0;
+		}
+
+		if (no_draw) {
+			continue;
+		}
+		else {
+#if GRAPH_USE_BACKBUFFER
+			LCD_BackBuffer_DrawPixel(x, i, color);
+#else
+			LCD_DrawPixel(graph->X + x, graph->Y + i, color);
+#endif // GRAPH_USE_BACKBUFFER
+		}
+	}
+}
+
+
+void Graph_DrawLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color)
 {
 	for (uint16_t i = 0; i < graph->Width; i++)
 	{
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_DrawPixel(i, yA, colorA);
-		LCD_BackBuffer_DrawPixel(i, yB, colorB);
+		LCD_BackBuffer_DrawPixel(i, y, color);
 #else
-		LCD_DrawPixel(graph->X + i, graph->Y + yA, colorA);
-		LCD_DrawPixel(graph->X + i, graph->Y + yB, colorB);
+		LCD_DrawPixel(graph->X + i, graph->Y + y, color);
 #endif // GRAPH_USE_BACKBUFFER
+	}
+}
+
+void Graph_DrawDashedLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color)
+{
+	_Bool no_draw = 0;
+	uint8_t pixel_count = 0;
+
+	for (uint16_t i = 0; i < graph->Width; i++)
+	{
+		++pixel_count;
+
+		if (no_draw && pixel_count > 8) {
+			no_draw = 0;
+			pixel_count = 0;
+		}
+
+		if (!no_draw && pixel_count > 16) {
+			no_draw = 1;
+			pixel_count = 0;
+		}
+
+		if (no_draw) {
+			continue;
+		}
+		else {
+#if GRAPH_USE_BACKBUFFER
+			LCD_BackBuffer_DrawPixel(i, y, color);
+#else
+			LCD_DrawPixel(graph->X + i, graph->Y + y, color);
+#endif // GRAPH_USE_BACKBUFFER
+		}
 	}
 }
 
@@ -1007,20 +1070,24 @@ void Graph_RecoverGrid(const Graph_TypeDef *graph, const uint16_t *data)
 
 	for (uint16_t i = 0; i < graph->Width - 1; i++)
 	{
-		if (data[i] >= graph->Height || data[i + 1] >= graph->Height) {
+		if (data[i] < data[i + 1]) {
+			y0 = data[i];
+			y1 = data[i + 1];
+		}
+		else {
+			y1 = data[i];
+			y0 = data[i + 1];
+		}
+
+		if (y0 >= graph->Height) {
 			continue;
 		}
+		y1 = (y1 < graph->Height) ? y1 : graph->Height - 1;
 
-		y0 = graph->Height - data[i] - 1;
-		y1 = graph->Height - data[i + 1] - 1;
+		y0 = graph->Height - y0 - 1;
+		y1 = graph->Height - y1 - 1;
 
-		if (y0 > y1) {
-			temp = y0;
-			y0 = y1;
-			y1 = temp;
-		}
-
-		for (uint16_t j = y0; j <= y1; j++) 
+		for (uint16_t j = y1; j <= y0; j++)
 		{
 			pixel_color = Graph_GetRecoverPixelColor(graph, i, j);
 
@@ -1033,40 +1100,31 @@ void Graph_RecoverGrid(const Graph_TypeDef *graph, const uint16_t *data)
 	}
 }
 
-void Graph_RecoverCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t xB)
+void Graph_RecoverLineX(const Graph_TypeDef *graph, uint16_t x)
 {
-	uint16_t pixel_color_A, pixel_color_B;
-
+	uint16_t pixel_color;
 	for (uint16_t i = 0; i < graph->Height; i++)
 	{
-		pixel_color_A = Graph_GetRecoverPixelColor(graph, xA, i);
-		pixel_color_B = Graph_GetRecoverPixelColor(graph, xB, i);
-
+		pixel_color = Graph_GetRecoverPixelColor(graph, x, i);
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_DrawPixel(xA, i, pixel_color_A);
-		LCD_BackBuffer_DrawPixel(xB, i, pixel_color_B);
+		LCD_BackBuffer_DrawPixel(x, i, pixel_color);
 #else
-		LCD_DrawPixel(graph->X + xA, graph->Y + i, pixel_color_A);
-		LCD_DrawPixel(graph->X + xB, graph->Y + i, pixel_color_B);
+		LCD_DrawPixel(graph->X + x, graph->Y + i, pixel_color);
 #endif // GRAPH_USE_BACKBUFFER
 	}
 }
 
-void Graph_RecoverCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t yB)
+void Graph_RecoverLineY(const Graph_TypeDef *graph, uint16_t y)
 {
-	uint16_t pixel_color_A, pixel_color_B;
+	uint16_t pixel_color;
 
 	for (uint16_t i = 0; i < graph->Width; i++)
 	{
-		pixel_color_A = Graph_GetRecoverPixelColor(graph, i, yA);
-		pixel_color_B = Graph_GetRecoverPixelColor(graph, i, yB);
-
+		pixel_color = Graph_GetRecoverPixelColor(graph, i, y);
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_DrawPixel(i, yA, pixel_color_A);
-		LCD_BackBuffer_DrawPixel(i, yB, pixel_color_B);
+		LCD_BackBuffer_DrawPixel(i, y, pixel_color);
 #else
-		LCD_DrawPixel(graph->X + i, graph->Y + yA, pixel_color_A);
-		LCD_DrawPixel(graph->X + i, graph->Y + yB, pixel_color_B);
+		LCD_DrawPixel(graph->X + i, graph->Y + y, pixel_color);
 #endif // GRAPH_USE_BACKBUFFER
 	}
 }

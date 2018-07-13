@@ -110,5 +110,5 @@ extern void AD9959_SetFreq(uint8_t channel, uint32_t freq);
 extern void AD9959_SetAmp(uint8_t channel, uint16_t amp);
 //On Chip ADC
 extern void ADC1_Init();
-
+//Delay
 extern void Delay_ms(uint16_t ms);

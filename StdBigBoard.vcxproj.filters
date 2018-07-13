@@ -734,6 +734,18 @@
     <ClInclude Include="Inc\number_input.h">
       <Filter>Header files\Applications</Filter>
     </ClInclude>
+    <ClInclude Include="Src\oscilloscope.h">
+      <Filter>Header files\Applications</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ascii.h">
+      <Filter>Resource files</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\big_number.h">
+      <Filter>Resource files</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\pattern.h">
+      <Filter>Resource files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\ad7606.c">
@@ -804,6 +816,9 @@
     </ClCompile>
     <ClCompile Include="Src\main.c">
       <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\oscilloscope.c">
+      <Filter>Source files\Applications</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

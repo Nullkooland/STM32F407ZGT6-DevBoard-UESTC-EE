@@ -14,7 +14,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{1F8D1B7F-3EC4-416E-ADB2-A55CDF52BAF5}</ProjectGuid>
     <BSP_ID>com.sysprogs.arm.stm32</BSP_ID>
-    <BSP_VERSION>4.6R4</BSP_VERSION>
+    <BSP_VERSION>4.7</BSP_VERSION>
     <InPlaceBSPSubdir />
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -118,6 +118,7 @@
     <ClCompile Include="Src\lcd.c" />
     <ClCompile Include="Src\main.c" />
     <ClCompile Include="Src\number_input.c" />
+    <ClCompile Include="Src\oscilloscope.c" />
     <ClCompile Include="Src\pe4302.c" />
     <ClCompile Include="Src\sdcard.c" />
     <ClCompile Include="Src\spi.c" />
@@ -130,6 +131,8 @@
     <ClInclude Include="Inc\ad9851.h" />
     <ClInclude Include="Inc\ad9959.h" />
     <ClInclude Include="Inc\adc.h" />
+    <ClInclude Include="Inc\ascii.h" />
+    <ClInclude Include="Inc\big_number.h" />
     <ClInclude Include="Inc\diskio.h" />
     <ClInclude Include="Inc\dma.h" />
     <ClInclude Include="Inc\frequency_sweep.h" />
@@ -137,6 +140,7 @@
     <ClInclude Include="Inc\i2c.h" />
     <ClInclude Include="Inc\lcd.h" />
     <ClInclude Include="Inc\number_input.h" />
+    <ClInclude Include="Inc\pattern.h" />
     <ClInclude Include="Inc\pe4302.h" />
     <ClInclude Include="Inc\sdcard.h" />
     <ClInclude Include="Inc\spi.h" />
@@ -145,6 +149,7 @@
     <ClInclude Include="Inc\tim.h" />
     <ClInclude Include="Inc\usart.h" />
     <ClInclude Include="Inc\zlg7290.h" />
+    <ClInclude Include="Src\oscilloscope.h" />
     <None Include="stm32.props" />
     <ClCompile Include="$(BSP_ROOT)\STM32F4xxxx\StartupFiles\startup_stm32f407xx.c" />
     <ClCompile Include="$(BSP_ROOT)\STM32F4xxxx\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal.c" />

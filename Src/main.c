@@ -14,8 +14,9 @@
 #include "sram.h"
 #include "ad9959.h"
 /* Applications & GUI */
-#include "frequency_sweep.h"
-#include "number_input.h"
+//#include "frequency_sweep.h"
+//#include "number_input.h"
+#include "oscilloscope.h"
 
 static void SystemClock_Config(void);
 void _Error_Handler(char*, int);
@@ -39,10 +40,12 @@ int main(void)
 	FATFS_Init();
 
 	//LCD_DrawPicture_SD(0, 0, 800, 480, "0:FOX.rgb16");
-	//LCD_ShowString(240, 420, 32, "ÄãÍÞÊÇÖí¶ù³æÂð£¡", BLACK);
+	//LCD_DrawString(240, 420, 32, "ÄãÍÞÊÇÖí¶ù³æÂð£¡", BLACK);
 
-	FreqSweep_Init();
-	FreqSweep_Start();
+	//FreqSweep_Init();
+	//FreqSweep_Start();
+
+	Oscilloscope_Init();
 
 	for (;;)
 	{

@@ -88,11 +88,11 @@ void LCD_DrawRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint1
 void LCD_FillRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
 void LCD_DrawPicture_Stream(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t *pBuffer);
 void LCD_DrawPicture_SD(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const uint8_t* fileName);
-void LCD_ShowNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t color);
-void LCD_ShowBigNumber(uint16_t x, uint16_t y, uint8_t num, uint16_t color);
-void LCD_ShowString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint16_t color);
-void LCD_ShowChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, uint16_t color);
-void LCD_ShowChar_GBK(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t* ptr, uint16_t color);
+void LCD_DrawNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t color);
+void LCD_DrawBigNumber(uint16_t x, uint16_t y, uint8_t num, uint16_t color);
+void LCD_DrawString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint16_t color);
+void LCD_DrawChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, uint16_t color);
+void LCD_DrawChar_GBK(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t* ptr, uint16_t color);
 
 /* Ë«»º³å²Ù×÷º¯Êý */
 void LCD_BackBuffer_Init(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
@@ -105,11 +105,13 @@ static inline uint16_t LCD_BackBuffer_ReadPixel(uint16_t x, uint16_t y);
 void Graph_Init(const Graph_TypeDef *graph);
 
 void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t color);
-void Graph_DrawCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t colorA, uint16_t xB, uint16_t colorB);
-void Graph_DrawCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t colorA, uint16_t yB, uint16_t colorB);
+void Graph_DrawLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color);
+void Graph_DrawDashedLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color);
+void Graph_DrawLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color);
+void Graph_DrawDashedLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color);
 void Graph_RecoverGrid(const Graph_TypeDef *graph, const uint16_t *data);
-void Graph_RecoverCursorX(const Graph_TypeDef *graph, uint16_t xA, uint16_t xB);
-void Graph_RecoverCursorY(const Graph_TypeDef *graph, uint16_t yA, uint16_t yB);
+void Graph_RecoverLineX(const Graph_TypeDef *graph, uint16_t x);
+void Graph_RecoverLineY(const Graph_TypeDef *graph, uint16_t y);
 static inline uint16_t Graph_GetRecoverPixelColor(const Graph_TypeDef *graph, uint16_t x0, uint16_t y0);
 
 extern void Delay_ms(uint16_t ms);

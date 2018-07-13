@@ -2,8 +2,6 @@
 
 void SRAM_WriteBytes(uint32_t offset, uint8_t* pBuffer, uint32_t count)
 {
-	offset = (offset < SRAM_SIZE) ? offset : SRAM_SIZE;
-
 	__IO uint16_t *addr = (__IO uint16_t*)(FSMC_SRAM_BASE + offset);
 	uint16_t *pBuffer16 = (uint16_t *)pBuffer;
 
@@ -18,8 +16,6 @@ void SRAM_WriteBytes(uint32_t offset, uint8_t* pBuffer, uint32_t count)
 
 void SRAM_ReadBytes(uint32_t offset, uint8_t* pBuffer, uint32_t count)
 {
-	offset = (offset < SRAM_SIZE) ? offset : SRAM_SIZE;
-
 	__IO uint16_t *addr = (__IO uint16_t*)(FSMC_SRAM_BASE + offset);
 	uint16_t *pBuffer16 = (uint16_t *)pBuffer;
 
