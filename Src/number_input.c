@@ -34,7 +34,7 @@ _Bool GetInputInt(uint32_t *inputVal)
 static _Bool GetUserInput(void)
 {
 	offset = 0;
-	LCD_ShowString(NUMINPUT_X, NUMINPUT_Y, 32, "请输入数值:", RED);
+	LCD_DrawString(NUMINPUT_X, NUMINPUT_Y, 32, "请输入数值:", RED);
 
 	for (;;)
 	{
@@ -76,9 +76,9 @@ static inline void DotInput(void)
 	}
 
 	LCD_FillRect(DIGITBOX_X + offset * 16, DIGITBOX_Y, 16, 32, BLACK);
-	LCD_ShowChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '.', WHITE);
+	LCD_DrawChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '.', WHITE);
 	input_buffer[offset++] = '.';
-	LCD_ShowChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '|', GRAY);
+	LCD_DrawChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '|', GRAY);
 
 	has_dot_inputted = 1;
 }
@@ -90,9 +90,9 @@ static inline void NumberInput(uint8_t num)
 	}
 
 	LCD_FillRect(DIGITBOX_X + offset * 16, DIGITBOX_Y, 16, 32, BLACK);
-	LCD_ShowNumber(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, num, WHITE);
+	LCD_DrawNumber(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, num, WHITE);
 	input_buffer[offset++] = num + '0';
-	LCD_ShowChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '|', GRAY);
+	LCD_DrawChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '|', GRAY);
 }
 
 static inline void BackSpace(void)
@@ -107,5 +107,5 @@ static inline void BackSpace(void)
 	LCD_FillRect(DIGITBOX_X + offset * 16, DIGITBOX_Y, 16, 32, BLACK);
 	offset--;
 	LCD_FillRect(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, 32, BLACK);
-	LCD_ShowChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '|', GRAY);
+	LCD_DrawChar_ASCII(DIGITBOX_X + offset * 16, DIGITBOX_Y, 32, '|', GRAY);
 }

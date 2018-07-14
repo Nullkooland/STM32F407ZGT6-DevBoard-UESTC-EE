@@ -103,7 +103,7 @@ extern uint8_t ZLG7290_ReadKey();
 
 //PE4302 Attenuator
 extern void PE4302_Init(void);
-extern void PE4302_SetLoss(uint8_t twoTimes_dB);
+extern void PE4302_SetAttenuation(uint8_t twoTimes_dB);
 //AD9959 DDS
 extern void AD9959_Init(void);
 extern void AD9959_SetFreq(uint8_t channel, uint32_t freq);

@@ -5,4 +5,4 @@
 #define LATCH_LOW	GPIOF->BSRR = (uint32_t)GPIO_PIN_8 << 16U
 
 void PE4302_Init(void);
-void PE4302_SetLoss(uint8_t twoTimes_dB);
+void PE4302_SetAttenuation(uint8_t twoTimes_dB);

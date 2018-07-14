@@ -690,24 +690,24 @@ void LCD_DrawNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t 
 
 void LCD_DrawBigNumber(uint16_t x, uint16_t y, uint8_t num, uint16_t color)
 {
-	uint16_t x0 = x;
+	if (num == '.') {
+		num = 10;
+	}
+	uint16_t y0 = y;
 
-	for (uint16_t i = 0; i < 256; i++)
+	for (uint16_t i = 0; i < 384; i++)
 	{
-		uint8_t temp = BigNumber_64x32[num][i];
-
+		uint8_t temp = BigNumber_64x48[num][i];
 		for (uint8_t j = 0; j < 8; j++)
 		{
 			if (temp & 1) LCD_DrawPixel(x, y, color);
 
 			temp >>= 1;
-			x++;
-			if (x >= screen_width)	return;
-			if ((x - x0) == 32)
+			++y;
+			if ((y - y0) == 64)
 			{
-				x = x0;
-				y++;
-				if (y >= screen_height) return;
+				y = y0;
+				++x;
 				break;
 			}
 		}
@@ -720,13 +720,13 @@ void LCD_DrawString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint
 	switch (fontSize)
 	{
 	case 16:
-		f_res = f_open(&file, "0:GBK_16x16.fon", FA_OPEN_EXISTING | FA_READ);
+		f_res = f_open(&file, "0:更纱黑体_16x16.fon", FA_OPEN_EXISTING | FA_READ);
 		break;
 	case 24:
-		f_res = f_open(&file, "0:GBK_24x24.fon", FA_OPEN_EXISTING | FA_READ);
+		f_res = f_open(&file, "0:更纱黑体_24x24.fon", FA_OPEN_EXISTING | FA_READ);
 		break;
 	case 32:
-		f_res = f_open(&file, "0:GBK_32x32.fon", FA_OPEN_EXISTING | FA_READ);
+		f_res = f_open(&file, "0:更纱黑体_32x32.fon", FA_OPEN_EXISTING | FA_READ);
 		break;
 	default: return;
 
@@ -752,10 +752,11 @@ void LCD_DrawString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint
 
 void LCD_DrawChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, uint16_t color)
 {
-	uint16_t x0 = x;
+	uint8_t bufferSize = fontSize * fontSize >> 4;
+	uint16_t y0 = y;
 	uint8_t* buffer;
 
-	ch = ch - ' ';
+	ch -= ' ';
 	switch (fontSize)
 	{
 	case 16: buffer = ASCII_16x8[ch]; break;
@@ -764,22 +765,19 @@ void LCD_DrawChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, ui
 	default: return;
 	}
 
-	for (uint8_t i = 0; i < fontSize * 2; i++)
+	for (uint8_t i = 0; i < bufferSize; i++)
 	{
 		uint8_t temp = buffer[i];
-
 		for (uint8_t j = 0; j < 8; j++)
 		{
 			if (temp & 1) LCD_DrawPixel(x, y, color);
 
 			temp >>= 1;
-			x++;
-			if (x >= screen_width)	return;
-			if ((x - x0) == fontSize / 2)
+			++y;
+			if ((y - y0) == fontSize)
 			{
-				x = x0;
-				y++;
-				if (y >= screen_height) return;
+				y = y0;
+				++x;
 				break;
 			}
 		}
@@ -789,25 +787,24 @@ void LCD_DrawChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, ui
 void LCD_DrawChar_GBK(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t* ptr, uint16_t color)
 {
 	uint8_t bufferSize = fontSize * fontSize >> 3;
-	uint16_t x0 = x, temp;
+	uint16_t y0 = y;
 
 	f_lseek(&file, ((ptr[0] - 0xA1) * 94 + (ptr[1] - 0xA1)) * bufferSize);
 	f_read(&file, &file_buffer, bufferSize, &fnum);
 
 	for (uint8_t i = 0; i < bufferSize; i++)
 	{
-		temp = file_buffer[i];
-
+		uint8_t temp = file_buffer[i];
 		for (uint8_t j = 0; j < 8; j++)
 		{
 			if (temp & 1) LCD_DrawPixel(x, y, color);
 
 			temp >>= 1;
-			x++;
-			if ((x - x0) == fontSize)
+			++y;
+			if ((y - y0) == fontSize)
 			{
-				x = x0;
-				y++;
+				y = y0;
+				++x;
 				break;
 			}
 		}
@@ -988,33 +985,22 @@ void Graph_DrawLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color)
 
 void Graph_DrawDashedLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color)
 {
-	_Bool no_draw = 0;
 	uint8_t pixel_count = 0;
 
 	for (uint16_t i = 0; i < graph->Height; i++)
 	{
 		++pixel_count;
 
-		if (no_draw && pixel_count > 8) {
-			no_draw = 0;
+		if (pixel_count > 4) {
+			i += 2;
 			pixel_count = 0;
 		}
-
-		if (!no_draw && pixel_count > 16) {
-			no_draw = 1;
-			pixel_count = 0;
-		}
-
-		if (no_draw) {
-			continue;
-		}
-		else {
 #if GRAPH_USE_BACKBUFFER
-			LCD_BackBuffer_DrawPixel(x, i, color);
+		LCD_BackBuffer_DrawPixel(x, i, color);
 #else
-			LCD_DrawPixel(graph->X + x, graph->Y + i, color);
+		LCD_DrawPixel(graph->X + x, graph->Y + i, color);
 #endif // GRAPH_USE_BACKBUFFER
-		}
+		
 	}
 }
 
@@ -1033,33 +1019,22 @@ void Graph_DrawLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color)
 
 void Graph_DrawDashedLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color)
 {
-	_Bool no_draw = 0;
 	uint8_t pixel_count = 0;
 
 	for (uint16_t i = 0; i < graph->Width; i++)
 	{
 		++pixel_count;
 
-		if (no_draw && pixel_count > 8) {
-			no_draw = 0;
+		if (pixel_count > 4) {
+			i += 2;
 			pixel_count = 0;
 		}
-
-		if (!no_draw && pixel_count > 16) {
-			no_draw = 1;
-			pixel_count = 0;
-		}
-
-		if (no_draw) {
-			continue;
-		}
-		else {
 #if GRAPH_USE_BACKBUFFER
-			LCD_BackBuffer_DrawPixel(i, y, color);
+		LCD_BackBuffer_DrawPixel(i, y, color);
 #else
-			LCD_DrawPixel(graph->X + i, graph->Y + y, color);
+		LCD_DrawPixel(graph->X + i, graph->Y + y, color);
 #endif // GRAPH_USE_BACKBUFFER
-		}
+		
 	}
 }
 

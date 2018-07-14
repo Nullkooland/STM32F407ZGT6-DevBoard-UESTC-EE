@@ -16,7 +16,7 @@ void PE4302_Init(void)
 
 }
 
-void PE4302_SetLoss(uint8_t twoTimes_dB)
+void PE4302_SetAttenuation(uint8_t twoTimes_dB)
 {
 	twoTimes_dB = (twoTimes_dB > 63) ? 63 : twoTimes_dB; //Íá£¬ÄãË¥ÄÛ¸ö¶à×¦×Ó£¿£¡
 

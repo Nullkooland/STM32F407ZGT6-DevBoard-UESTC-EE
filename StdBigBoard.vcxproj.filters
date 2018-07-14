@@ -746,6 +746,9 @@
     <ClInclude Include="Inc\pattern.h">
       <Filter>Resource files</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\lmh6518.h">
+      <Filter>Header files\Drivers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\ad7606.c">
@@ -819,6 +822,9 @@
     </ClCompile>
     <ClCompile Include="Src\oscilloscope.c">
       <Filter>Source files\Applications</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\lmh6518.c">
+      <Filter>Source files\Drivers</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

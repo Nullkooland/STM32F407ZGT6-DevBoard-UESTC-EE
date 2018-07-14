@@ -46,25 +46,32 @@ void Oscilloscope_Init(void)
 	Graph_Init(&graph);
 
 	LCD_DrawRect(TIMEBOX_X, TIMEBOX_Y, TIMEBOX_WIDTH, TIMEBOX_HEIGHT, WHITE);
-	LCD_DrawString(TIMEBOX_X + 8, TIMEBOX_Y + 5, 24, "水平时基档位", WHITE);
-	LCD_DrawString(TIMEBOX_X + (TIMEBOX_WIDTH - strlen(timeBase[time_div]) * 16) / 2, TIMEBOX_Y + 36, 32, timeBase[time_div], YELLOW);
+	LCD_DrawString(TIMEBOX_X + 12, TIMEBOX_Y + 6, 24, "水平时基档位", WHITE);
+	LCD_DrawString(TIMEBOX_X + (TIMEBOX_WIDTH - strlen(timeBase[time_div]) * 12) / 2, TIMEBOX_Y + 36, 24, timeBase[time_div], YELLOW);
 
-	LCD_DrawString(TIMEBOX_X + 32, TIMEBOX_Y + 75, 24, "水平位置", WHITE);
-	LCD_DrawString(TIMEBOX_X + 20, TIMEBOX_Y + 105, 32, "+5ms", YELLOW);
+	LCD_DrawString(TIMEBOX_X + 36, TIMEBOX_Y + 66, 24, "水平位置", WHITE);
+	LCD_DrawString(TIMEBOX_X + 36, TIMEBOX_Y + 96, 24, "+5.10ms", YELLOW);
+	LCD_DrawPicture_Stream(GRID_X + GRID_WIDTH / 2 - 5, GRID_Y - 12, 11, 11, down_arrow_pattern);
 
 	LCD_DrawRect(VOLTBOX_X, VOLTBOX_Y, VOLTBOX_WIDTH, VOLTBOX_HEIGHT, WHITE);
-	LCD_DrawString(VOLTBOX_X + 8, VOLTBOX_Y + 5, 24, "垂直电压档位", WHITE);
-	LCD_DrawString(VOLTBOX_X + (VOLTBOX_WIDTH - strlen(voltBase[volt_div]) * 16) / 2, VOLTBOX_Y + 36, 32, voltBase[volt_div], YELLOW);
+	LCD_DrawString(VOLTBOX_X + 12, VOLTBOX_Y + 6, 24, "垂直电压档位", WHITE);
+	LCD_DrawString(VOLTBOX_X + (VOLTBOX_WIDTH - strlen(voltBase[volt_div]) * 12) / 2, VOLTBOX_Y + 36, 24, voltBase[volt_div], YELLOW);
 
-	LCD_DrawString(VOLTBOX_X + 32, VOLTBOX_Y + 75, 24, "垂直位置", WHITE);
+	LCD_DrawString(VOLTBOX_X + 36, VOLTBOX_Y + 66, 24, "垂直位置", WHITE);
+	LCD_DrawPicture_Stream(GRID_X - 12, GRID_Y + GRID_HEIGHT - vertical_pos - 5, 11, 11, right_arrow_pattern);
 	UpdateVerticalPosInfo();
 
-	//LCD_DrawPicture_Stream(7, GRID_Y + GRID_HEIGHT / 2 - 6, 12, 12, right_arrow_pattern);
-	LCD_DrawPicture_Stream(GRID_X + GRID_WIDTH / 2 - 6, 7, 12, 12, down_arrow_pattern);
-
 	LCD_DrawRect(TRIGBOX_X, TRIGBOX_Y, TRIGBOX_WIDTH, TRIGBOX_HEIGHT, WHITE);
-	LCD_DrawString(TRIGBOX_X + 32, TRIGBOX_Y + 5, 24, "触发电平", WHITE);
-	
+	LCD_DrawString(TRIGBOX_X + 36, TRIGBOX_Y + 6, 24, "触发电平", WHITE);
+	LCD_DrawString(TRIGBOX_X + 36, TRIGBOX_Y + 36, 24, "+5.10ms", YELLOW);
+
+	LCD_DrawRect(INPUTBOX_X, INPUTBOX_Y, INPUTBOX_WIDTH, INPUTBOX_HEIGHT, WHITE);
+	LCD_DrawString(INPUTBOX_X + 8, INPUTBOX_Y + 8, 32, "耦合", WHITE);
+	LCD_DrawString(INPUTBOX_X + 8, INPUTBOX_Y + 56, 32, "倍率", WHITE);
+
+	LCD_DrawString(INPUTBOX_X + 96, INPUTBOX_Y + 8, 32, "AC", CYAN);
+	LCD_DrawString(INPUTBOX_X + 96, INPUTBOX_Y + 56, 32, "10x", CYAN);
+
 	//LCD_BackBuffer_Update();
 	//HAL_ADC_Start_DMA(&hadc1, adc_samples_buffer, ADC_SAMPLE_COUNT);
 
@@ -107,25 +114,30 @@ void Oscilloscope_Test(void)
 
 		switch (ZLG7290_ReadKey())
 		{
+			/* 水平时基选择 */
 		case 1:
 			time_div = (time_div + 1) % 5;
-			LCD_FillRect(TIMEBOX_X + 8, TIMEBOX_Y + 36, 150, 32, BLACK);
-			LCD_DrawString(TIMEBOX_X + (TIMEBOX_WIDTH - strlen(timeBase[time_div]) * 16) / 2, TIMEBOX_Y + 36, 32, timeBase[time_div], YELLOW);
+			LCD_FillRect(TIMEBOX_X + 12, TIMEBOX_Y + 36, 150, 24, BLACK);
+			LCD_DrawString(TIMEBOX_X + (TIMEBOX_WIDTH - strlen(timeBase[time_div]) * 16) / 2, TIMEBOX_Y + 36, 24, timeBase[time_div], YELLOW);
 			break;
 
+			/* 垂直电压档选择 */
 		case 2:
 			volt_div = (volt_div + 1) % 3;
-			LCD_FillRect(VOLTBOX_X + 8, VOLTBOX_Y + 36, 150, 32, BLACK);
-			LCD_DrawString(VOLTBOX_X + (VOLTBOX_WIDTH - strlen(voltBase[volt_div]) * 16) / 2, VOLTBOX_Y + 36, 32, voltBase[volt_div], YELLOW);
+			LCD_FillRect(VOLTBOX_X + 12, VOLTBOX_Y + 36, 150, 24, BLACK);
+			LCD_DrawString(VOLTBOX_X + (VOLTBOX_WIDTH - strlen(voltBase[volt_div]) * 16) / 2, VOLTBOX_Y + 36, 24, voltBase[volt_div], YELLOW);
 			UpdateVerticalPosInfo();
 			break;
 
+			/* AC/DC耦合选择 */
 		case 9:
 			break;
 
+			/* 探头倍率选择 */
 		case 10:
 			break;
 
+			/* 垂直位置调整 */
 		case 4:
 			AdjustVerticalPos(1);
 			break;
@@ -134,6 +146,7 @@ void Oscilloscope_Test(void)
 			AdjustVerticalPos(0);
 			break;
 
+			/* 触发电平调整 */
 		case 5:
 			break;
 
@@ -142,7 +155,7 @@ void Oscilloscope_Test(void)
 		default:
 			break;
 		}
-		Delay_ms(32);
+		Delay_ms(24);
 	}
 }
 
@@ -160,13 +173,13 @@ static void AdjustVerticalPos(_Bool up_down_select)
 		delta = (up_down_select) ? 1 : -1;
 	}
 
-	LCD_FillRect(7, GRID_Y + GRID_HEIGHT - vertical_pos - 6, 12, 12, BLACK);
+	LCD_FillRect(GRID_X - 12, GRID_Y + GRID_HEIGHT - vertical_pos - 5, 11, 11, BLACK);
 
 	vertical_pos += delta;
 	vertical_pos = (vertical_pos > 0) ? vertical_pos : 0;
 	vertical_pos = (vertical_pos < GRID_HEIGHT) ? vertical_pos : GRID_HEIGHT;
 
-	LCD_DrawPicture_Stream(7, GRID_Y + GRID_HEIGHT - vertical_pos - 6, 12, 12, right_arrow_pattern);
+	LCD_DrawPicture_Stream(GRID_X - 12, GRID_Y + GRID_HEIGHT - vertical_pos - 5, 11, 11, right_arrow_pattern);
 	UpdateVerticalPosInfo();
 
 	last_direction = up_down_select;
@@ -174,7 +187,7 @@ static void AdjustVerticalPos(_Bool up_down_select)
 
 static inline void UpdateVerticalPosInfo(void)
 {
-	LCD_FillRect(VOLTBOX_X + 24, VOLTBOX_Y + 105, 112, 32, BLACK);
+	LCD_FillRect(VOLTBOX_X + 44, VOLTBOX_Y + 96, 72, 24, BLACK);
 	if (volt_div == 0) {
 		sprintf(str_buffer, "%+3.1fmV", (float)(vertical_pos - GRID_HEIGHT / 2) * 0.2f);
 	}
@@ -184,7 +197,7 @@ static inline void UpdateVerticalPosInfo(void)
 	else if (volt_div == 2) {
 		sprintf(str_buffer, "%+3.2fV", (float)(vertical_pos - GRID_HEIGHT / 2) * 0.02f);
 	}
-	LCD_DrawString(VOLTBOX_X + 24, VOLTBOX_Y + 105, 32, str_buffer, YELLOW);
+	LCD_DrawString(VOLTBOX_X + 44, VOLTBOX_Y + 96, 24, str_buffer, YELLOW);
 }
 
 static inline float pow10(uint8_t n)

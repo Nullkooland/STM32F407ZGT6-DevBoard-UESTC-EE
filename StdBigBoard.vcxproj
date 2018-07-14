@@ -116,6 +116,7 @@
     <ClCompile Include="Src\fsmc.c" />
     <ClCompile Include="Src\i2c.c" />
     <ClCompile Include="Src\lcd.c" />
+    <ClCompile Include="Src\lmh6518.c" />
     <ClCompile Include="Src\main.c" />
     <ClCompile Include="Src\number_input.c" />
     <ClCompile Include="Src\oscilloscope.c" />
@@ -139,6 +140,7 @@
     <ClInclude Include="Inc\fsmc.h" />
     <ClInclude Include="Inc\i2c.h" />
     <ClInclude Include="Inc\lcd.h" />
+    <ClInclude Include="Inc\lmh6518.h" />
     <ClInclude Include="Inc\number_input.h" />
     <ClInclude Include="Inc\pattern.h" />
     <ClInclude Include="Inc\pe4302.h" />

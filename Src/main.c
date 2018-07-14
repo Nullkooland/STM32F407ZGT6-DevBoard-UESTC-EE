@@ -39,12 +39,9 @@ int main(void)
 	/* Initialize Fat FileSystem for SD Card */
 	FATFS_Init();
 
-	//LCD_DrawPicture_SD(0, 0, 800, 480, "0:FOX.rgb16");
-	//LCD_DrawString(240, 420, 32, "ÄãÍÞÊÇÖí¶ù³æÂð£¡", BLACK);
-
 	//FreqSweep_Init();
 	//FreqSweep_Start();
-
+	
 	Oscilloscope_Init();
 
 	for (;;)
@@ -160,7 +157,7 @@ void HAL_MspInit(void)
 
 void _Error_Handler(char * file, int line)
 {
-	printf("Error at %s\n", file);
+	printf("Error at file:%s, line:%d\n", file, line);
 	while (1);
 }
 

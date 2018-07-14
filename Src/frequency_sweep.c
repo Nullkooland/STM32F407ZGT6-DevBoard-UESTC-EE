@@ -2,7 +2,7 @@
 #include "number_input.h"
 #include "lcd.h"
 #include "zlg7290.h"
-#include "ad9959.h"
+#include "lmh6518.h"
 
 #include <arm_math.h>
 
@@ -321,7 +321,7 @@ static void UpdateFreqInfoDispaly(void)
 static inline void UpdateOutputAmp(void)
 {
 	//查表并设置衰减值
-	PE4302_SetLoss(amp_table[50 - output_amp][0]);
+	PE4302_SetAttenuation(amp_table[50 - output_amp][0]);
 	AD9959_SetAmp(OUTPUT_CHANNEL, amp_table[50 - output_amp][1]);
 
 	//使用大黑块进行[数据删除]
