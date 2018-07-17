@@ -959,20 +959,20 @@ void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t 
 		y0 = graph->Height - y0 - 1;
 		y1 = graph->Height - y1 - 1;
 
-#if GRAPH_USE_BACKBUFFER
 		for (uint16_t j = y1; j <= y0; j++) {
+#if GRAPH_USE_BACKBUFFER
 			LCD_BackBuffer_DrawPixel(i, j, color);
-		}
 #else
-		for (uint16_t j = graph->Y + y0; j <= graph->Y + y1; j++) {
-			LCD_DrawPixel(graph->X + i, j, color);
-		}
+			LCD_DrawPixel(graph->X + i, graph->Y + j, color);
 #endif // GRPAH_USE_BACKBUFFER
+		}
 	}
 }
 
 void Graph_DrawLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color)
 {
+	if (x > graph->Width) return;
+
 	for (uint16_t i = 0; i < graph->Height; i++)
 	{
 #if GRAPH_USE_BACKBUFFER
@@ -985,6 +985,7 @@ void Graph_DrawLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color)
 
 void Graph_DrawDashedLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color)
 {
+	if (x > graph->Width) return;
 	uint8_t pixel_count = 0;
 
 	for (uint16_t i = 0; i < graph->Height; i++)
@@ -1007,18 +1008,21 @@ void Graph_DrawDashedLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t colo
 
 void Graph_DrawLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color)
 {
+	if (y > graph->Height) return;
+
 	for (uint16_t i = 0; i < graph->Width; i++)
 	{
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_DrawPixel(i, y, color);
+		LCD_BackBuffer_DrawPixel(i, graph->Height - y, color);
 #else
-		LCD_DrawPixel(graph->X + i, graph->Y + y, color);
+		LCD_DrawPixel(graph->X + i, graph->Y + graph->Height - y, color);
 #endif // GRAPH_USE_BACKBUFFER
 	}
 }
 
 void Graph_DrawDashedLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t color)
 {
+	if (y > graph->Height) return;
 	uint8_t pixel_count = 0;
 
 	for (uint16_t i = 0; i < graph->Width; i++)
@@ -1030,9 +1034,9 @@ void Graph_DrawDashedLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t colo
 			pixel_count = 0;
 		}
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_DrawPixel(i, y, color);
+		LCD_BackBuffer_DrawPixel(i, graph->Height - y, color);
 #else
-		LCD_DrawPixel(graph->X + i, graph->Y + y, color);
+		LCD_DrawPixel(graph->X + i, graph->Y + graph->Height - y, color);
 #endif // GRAPH_USE_BACKBUFFER
 		
 	}
@@ -1077,6 +1081,7 @@ void Graph_RecoverGrid(const Graph_TypeDef *graph, const uint16_t *data)
 
 void Graph_RecoverLineX(const Graph_TypeDef *graph, uint16_t x)
 {
+	if (x > graph->Width) return;
 	uint16_t pixel_color;
 	for (uint16_t i = 0; i < graph->Height; i++)
 	{
@@ -1091,15 +1096,16 @@ void Graph_RecoverLineX(const Graph_TypeDef *graph, uint16_t x)
 
 void Graph_RecoverLineY(const Graph_TypeDef *graph, uint16_t y)
 {
+	if (y > graph->Height) return;
 	uint16_t pixel_color;
 
 	for (uint16_t i = 0; i < graph->Width; i++)
 	{
-		pixel_color = Graph_GetRecoverPixelColor(graph, i, y);
+		pixel_color = Graph_GetRecoverPixelColor(graph, i, graph->Height - y);
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_DrawPixel(i, y, pixel_color);
+		LCD_BackBuffer_DrawPixel(i, graph->Height - y, pixel_color);
 #else
-		LCD_DrawPixel(graph->X + i, graph->Y + y, pixel_color);
+		LCD_DrawPixel(graph->X + i, graph->Y + graph->Height - y, pixel_color);
 #endif // GRAPH_USE_BACKBUFFER
 	}
 }

@@ -76,6 +76,7 @@
       <CPPLanguageStandard />
       <Optimization>O2</Optimization>
       <InlineFunctions>true</InlineFunctions>
+      <LinkTimeOptimization>false</LinkTimeOptimization>
     </ClCompile>
     <Link>
       <LibrarySearchDirectories>;%(Link.LibrarySearchDirectories)</LibrarySearchDirectories>
@@ -108,6 +109,7 @@
     <ClCompile Include="Src\ad9959.c" />
     <ClCompile Include="Src\adc.c" />
     <ClCompile Include="Src\cc936.c" />
+    <ClCompile Include="Src\dac.c" />
     <ClCompile Include="Src\diskio.c" />
     <ClCompile Include="Src\dma.c" />
     <ClCompile Include="Src\fatfs.c" />
@@ -134,6 +136,7 @@
     <ClInclude Include="Inc\adc.h" />
     <ClInclude Include="Inc\ascii.h" />
     <ClInclude Include="Inc\big_number.h" />
+    <ClInclude Include="Inc\dac.h" />
     <ClInclude Include="Inc\diskio.h" />
     <ClInclude Include="Inc\dma.h" />
     <ClInclude Include="Inc\frequency_sweep.h" />
@@ -142,6 +145,7 @@
     <ClInclude Include="Inc\lcd.h" />
     <ClInclude Include="Inc\lmh6518.h" />
     <ClInclude Include="Inc\number_input.h" />
+    <ClInclude Include="Inc\oscilloscope.h" />
     <ClInclude Include="Inc\pattern.h" />
     <ClInclude Include="Inc\pe4302.h" />
     <ClInclude Include="Inc\sdcard.h" />
@@ -151,7 +155,6 @@
     <ClInclude Include="Inc\tim.h" />
     <ClInclude Include="Inc\usart.h" />
     <ClInclude Include="Inc\zlg7290.h" />
-    <ClInclude Include="Src\oscilloscope.h" />
     <None Include="stm32.props" />
     <ClCompile Include="$(BSP_ROOT)\STM32F4xxxx\StartupFiles\startup_stm32f407xx.c" />
     <ClCompile Include="$(BSP_ROOT)\STM32F4xxxx\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal.c" />

@@ -21,7 +21,7 @@
 static void SystemClock_Config(void);
 void _Error_Handler(char*, int);
 
-extern UART_RxBuffer_TypeDef huart1_buffer;
+extern UART_RxBufferTypeDef uart1_rx_buffer;
 
 int main(void)
 {
@@ -67,16 +67,6 @@ int main(void)
 		Graph_RecoverGrid(&graph, ch0);
 		Graph_RecoverGrid(&graph, ch1);
 		*/
-
-		if (huart1_buffer.RxEnd) {
-			uint16_t val;
-			sscanf(huart1_buffer.Data, "%u", &val);
-			PE4302_SetLoss(val);
-			sscanf(huart1_buffer.Data + 4, "%u", &val);
-			AD9959_SetAmp(AD9959_CHANNEL_1, val);
-
-			huart1_buffer.RxEnd = 0;
-		}
 
 		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
 		Delay_ms(100);

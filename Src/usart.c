@@ -7,7 +7,7 @@ UART_HandleTypeDef huart1;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 
-UART_RxBuffer_TypeDef huart1_buffer;
+UART_RxBufferTypeDef uart1_rx_buffer;
 
 /* Redirect std ostream to uart1 */
 size_t _write(int file, uint8_t *pBuffer, size_t len)
@@ -32,7 +32,7 @@ void USART1_UART_Init(void)
 		_Error_Handler(__FILE__, __LINE__);
 	}
 	
-	HAL_UART_Receive_DMA(&huart1, huart1_buffer.Data, UART_RX_BUFFER_SIZE);
+	HAL_UART_Receive_DMA(&huart1, uart1_rx_buffer.Data, UART_RX_BUFFER_SIZE);
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
@@ -127,11 +127,11 @@ void USART1_IRQHandler(void)
 		__HAL_UART_CLEAR_IDLEFLAG(&huart1);
 
 		__HAL_DMA_DISABLE(huart1.hdmarx);
-		huart1_buffer.RxCount = UART_RX_BUFFER_SIZE - hdma_usart1_rx.Instance->NDTR;
+		uart1_rx_buffer.RxCount = UART_RX_BUFFER_SIZE - hdma_usart1_rx.Instance->NDTR;
 		__HAL_DMA_ENABLE(huart1.hdmarx);
 
-		huart1_buffer.RxEnd = 1;
-		huart1_buffer.Data[huart1_buffer.RxCount] = '\0';
+		uart1_rx_buffer.RxEnd = 1;
+		uart1_rx_buffer.Data[uart1_rx_buffer.RxCount] = '\0';
 	}
 	HAL_UART_IRQHandler(&huart1);
 }

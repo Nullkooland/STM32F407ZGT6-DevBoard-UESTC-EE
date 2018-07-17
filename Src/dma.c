@@ -31,7 +31,7 @@ void DMA_Init(void)
 	hdma_m2m.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
 	hdma_m2m.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
 	hdma_m2m.Init.Mode = DMA_NORMAL;
-	hdma_m2m.Init.Priority = DMA_PRIORITY_MEDIUM;
+	hdma_m2m.Init.Priority = DMA_PRIORITY_LOW;
 	hdma_m2m.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
 	hdma_m2m.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
 	hdma_m2m.Init.MemBurst = DMA_MBURST_INC4;
