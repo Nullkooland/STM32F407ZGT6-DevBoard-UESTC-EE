@@ -710,9 +710,6 @@
     <ClInclude Include="Inc\diskio.h">
       <Filter>Header files\FatFS</Filter>
     </ClInclude>
-    <ClInclude Include="Inc\ad9851.h">
-      <Filter>Header files\Drivers</Filter>
-    </ClInclude>
     <ClInclude Include="Inc\adc.h">
       <Filter>Header files\System</Filter>
     </ClInclude>
@@ -751,6 +748,9 @@
     </ClInclude>
     <ClInclude Include="Inc\dac.h">
       <Filter>Header files\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ads8694.h">
+      <Filter>Header files\Drivers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -796,9 +796,6 @@
     <ClCompile Include="Src\diskio.c">
       <Filter>Source files\FatFS</Filter>
     </ClCompile>
-    <ClCompile Include="Src\ad9851.c">
-      <Filter>Source files\Drivers</Filter>
-    </ClCompile>
     <ClCompile Include="Src\adc.c">
       <Filter>Source files\System</Filter>
     </ClCompile>
@@ -831,6 +828,9 @@
     </ClCompile>
     <ClCompile Include="Src\dac.c">
       <Filter>Source files\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ads8694.c">
+      <Filter>Source files\Drivers</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

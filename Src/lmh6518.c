@@ -31,6 +31,6 @@ void LMH6518_SetAttenuation(LMH6518_LadderAttenuation attenuation)
 static inline void LMH6518_WriteData(void)
 {
 	SPI2_RW_Byte(LMH6518_WRITE);
-	SPI2_RW_Byte(lmh6518.Value[0]);
-	SPI2_RW_Byte(lmh6518.Value[1]);
+	SPI2_RW_Byte(lmh6518.Bytes[0]);
+	SPI2_RW_Byte(lmh6518.Bytes[1]);
 }

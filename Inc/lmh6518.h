@@ -28,7 +28,7 @@ typedef union {
 		unsigned					: 5;
 	} DataField;
 	/* SPI ReadWrite Value */
-	uint8_t Value[2];
+	uint8_t Bytes[2];
 } LMH6518_TypeDef;
 
 void LMH6518_SetAuxOutput(_Bool isEnabled);

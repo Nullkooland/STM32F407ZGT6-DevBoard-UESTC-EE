@@ -138,7 +138,7 @@ void Oscilloscope_Test(void)
 			UpdateVerticalPosInfo();
 			break;
 
-			/* AC/DC耦合选择 */
+			/* AC-DC耦合选择 */
 		case 9:
 			osc_args.Coupling = !osc_args.Coupling;
 			LCD_FillRect(INPUTBOX_X + 96, INPUTBOX_Y + 8, 32, 32, BLACK);
@@ -281,7 +281,7 @@ static void AdjustTriggerVoltage(_Bool up_down_select)
 	osc_args.TriggerVolt += delta;
 	osc_args.TriggerVolt = CLAMP(osc_args.TriggerVolt, 0, 4095);
 
-	Graph_DrawDashedLineY(&graph, osc_args.TriggerVolt * DISPLAY_CVT_FACTOR * pow10(2 - osc_args.VoltBase) + osc_args.VoltOffset + GRID_HEIGHT / 2, LIGHTGREEN);
+	Graph_DrawDashedLineY(&graph, osc_args.TriggerVolt * DISPLAY_CVT_FACTOR * pow10(2 - osc_args.VoltBase) + osc_args.VoltOffset + GRID_HEIGHT / 2, LGRAYBLUE);
 
 	htim6.Instance->CNT = 0;
 	HAL_TIM_Base_Start_IT(&htim6);
@@ -306,9 +306,9 @@ static inline void UpdateSamplingRate(void)
 {
 	HAL_ADC_Stop_DMA(&hadc1);
 
-	ADC_Common_TypeDef *tmpADC_Common = ADC_COMMON_REGISTER(&hadc1);
-	tmpADC_Common->CCR &= ~(ADC_CCR_ADCPRE);
-	tmpADC_Common->CCR |= sampling_args[osc_args.TimeBase].ADCClockPrescaler;
+	ADC_Common_TypeDef *temp_adc_common = ADC_COMMON_REGISTER(&hadc1);
+	temp_adc_common->CCR &= ~(ADC_CCR_ADCPRE);
+	temp_adc_common->CCR |= sampling_args[osc_args.TimeBase].ADCClockPrescaler;
 
 	hadc1.Instance->SMPR2 &= ~ADC_SMPR2(ADC_SMPR2_SMP0, ADC_CHANNEL_5);
 	hadc1.Instance->SMPR2 |= ADC_SMPR2(sampling_args[osc_args.TimeBase].ADCSamplingTime, ADC_CHANNEL_5);

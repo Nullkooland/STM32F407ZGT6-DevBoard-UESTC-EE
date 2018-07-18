@@ -105,9 +105,9 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="Src\ad7606.c" />
-    <ClCompile Include="Src\ad9851.c" />
     <ClCompile Include="Src\ad9959.c" />
     <ClCompile Include="Src\adc.c" />
+    <ClCompile Include="Src\ads8694.c" />
     <ClCompile Include="Src\cc936.c" />
     <ClCompile Include="Src\dac.c" />
     <ClCompile Include="Src\diskio.c" />
@@ -131,9 +131,9 @@
     <ClCompile Include="Src\usart.c" />
     <ClCompile Include="Src\zlg7290.c" />
     <ClInclude Include="Inc\ad7606.h" />
-    <ClInclude Include="Inc\ad9851.h" />
     <ClInclude Include="Inc\ad9959.h" />
     <ClInclude Include="Inc\adc.h" />
+    <ClInclude Include="Inc\ads8694.h" />
     <ClInclude Include="Inc\ascii.h" />
     <ClInclude Include="Inc\big_number.h" />
     <ClInclude Include="Inc\dac.h" />

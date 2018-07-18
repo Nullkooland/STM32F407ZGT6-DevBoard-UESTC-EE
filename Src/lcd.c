@@ -12,7 +12,8 @@
 
 extern DMA_HandleTypeDef hdma_m2m;
 
-static uint16_t screen_width = 800;		//歪，默认是横屏哈，你娃听到没得！
+//分辨率 默认横评
+static uint16_t screen_width = 800;
 static uint16_t screen_height = 480;
 
 //双缓冲区结构体
@@ -649,15 +650,13 @@ void LCD_DrawPicture_SD(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
 		LCD_SetWindow(x, y, width, height);
 		WRITE_CMD(0x2C00);
 
-		do
-		{
+		do {
 			f_read(&file, &file_buffer, 512U, &fnum);
 			uint16_t* imgBuffer = (uint16_t *)file_buffer;
 
 			for (uint16_t i = 0; i < fnum / 2; i++) {
 				WRITE_DATA(imgBuffer[i]);
 			}
-
 		} while (fnum > 0);
 	}
 
@@ -675,8 +674,7 @@ void LCD_DrawNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t 
 		sign = 1;
 	}
 
-	do
-	{
+	do {
 		temp[i--] = num % 10 + '0';
 		num /= 10;
 	} while (num);
@@ -1038,7 +1036,6 @@ void Graph_DrawDashedLineY(const Graph_TypeDef *graph, uint16_t y, uint16_t colo
 #else
 		LCD_DrawPixel(graph->X + i, graph->Y + graph->Height - y, color);
 #endif // GRAPH_USE_BACKBUFFER
-		
 	}
 }
 

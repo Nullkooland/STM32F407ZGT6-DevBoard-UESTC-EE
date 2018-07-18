@@ -50,19 +50,17 @@
 #define FREQ_REF		8.5904963602764		//频率参考
 #define PHASE_REF		45.511111111111		//相位参考
 
-typedef enum
-{
+typedef enum {
 	CSR, FR1, FR2, CFR, CFTW0, CPOW0, ACR, LSRR, RDW, FDW,
 	CW1, CW2, CW3, CW4, CW5, CW6, CW7, CW8, CW9, CW10, CW11, CW12, CW13, CW14, CW15, 
-} AD9559_REG;
+} AD9559_Reg;
 
-typedef enum
-{
+typedef enum {
 	AD9959_CHANNEL_0 = 0x10,
 	AD9959_CHANNEL_1 = 0x20,
 	AD9959_CHANNEL_2 = 0x40,
 	AD9959_CHANNEL_3 = 0x80,
-} AD9559_CHANNEL;
+} AD9559_Channel;
 
 #define ASK_MOD 0x400000
 #define FSK_MOD 0x800000
