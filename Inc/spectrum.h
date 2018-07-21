@@ -1,11 +1,11 @@
 #pragma once
 #include <stm32f4xx_hal.h>
 
-#define SAMPLE_COUNT		2048
+#define MAX_SAMPLE_COUNT	2048
 
 #define GRID_X				25
 #define GRID_Y				25
-#define GRID_WIDTH			750
+#define GRID_WIDTH			600
 #define GRID_HEIGHT			400
 
 typedef enum {
@@ -16,18 +16,33 @@ typedef enum {
 	FLATTOP_WINDOW,
 } WindowFunc_Type;
 
+/*
 typedef enum {
 	DIV_50Hz, DIV_100Hz, DIV_500Hz, DIV_1kHz, DIV_5kHz, DIV_10kHz, DIV_50kHz
 } FreqBase;
 
 static const uint8_t *freq_base_tag[7] = { "50Hz/div", "100Hz/div", "500Hz/div", "1kHz/div", "5kHz/div", "10kHz/div", "50kHz/div" };
+*/
+
+typedef enum {
+	DIV_50Hz, DIV_100Hz, DIV_500Hz, DIV_1kHz,
+} FreqBase;
+
+static const uint8_t *freq_base_tag[4] = { "50Hz/div", "100Hz/div", "500Hz/div", "1kHz/div" };
+static const uint16_t sample_count_values[4] = { 512, 1024, 2048, 2048 };
 
 void SpectrumDisplay_Init(void);
 void SpectrumDisplay_Start(void);
+void MeasureHarmonics(void);
 
-static void GenerateWindowFunction(float *window, uint16_t length, WindowFunc_Type type);
-static void UpdateFrequencyInfo(void);
+static void UpdateSamplingArgs(void);
+static inline void UpdateFrequencyInfo(void);
 static void MoveCursor(_Bool right_left_select);
+static inline void UpdateCursorInfo(void);
+
+static inline float pow10(uint8_t n);
+
+static void GenerateWindowFunction(float *window, uint16_t length, uint8_t type);
 
 //ZLG7290 KeyBoard Driver
 extern void ZLG7290_Init(void);

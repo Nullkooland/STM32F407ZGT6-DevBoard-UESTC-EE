@@ -4,7 +4,6 @@
 #define CLAMP(X, LOW, HIGH)  (((X) > (HIGH)) ? (HIGH) : (((X) < (LOW)) ? (LOW) : (X)))
 #define SAMPLE_COUNT		2048
 #define VOLT_FACTOR			0.017914726f
-#define DISPLAY_CVT_FACTOR  VOLT_FACTOR * 0.05f
 
 #define GRID_X				15
 #define GRID_Y				15
@@ -36,7 +35,7 @@ typedef enum {
 } TimeBase;
 
 typedef enum {
-	DIV_10mV, DIV_100mV, DIV_1V,
+	DIV_5mV, DIV_10mV, DIV_50mV, DIV_100mV, DIV_500mV, DIV_1V,
 } VoltBase;
 
 typedef enum {
@@ -56,10 +55,11 @@ typedef struct {
 	uint8_t VoltBase;
 	int32_t VoltOffset;
 	int32_t TriggerVolt;
+	float DisplayScaleFactor;
 } OscArgs_TypeDef;
 
 static const uint8_t *time_base_tag[4] = { "1ms/div", "5ms/dive", "10ms/div", "50ms/div" };
-static const uint8_t *volt_base_tag[3] = { "10mV/div", "100mV/div", "1V/div" };
+static const uint8_t *volt_base_tag[6] = { "5mV/div", "10mV/div", "50mV/div", "100mV/div", "500mV/div", "1V/div" };
 
 void Oscilloscope_Init(void);
 void Oscilloscope_Start(void);
@@ -72,7 +72,6 @@ static inline void UpdateHorizontalPosInfo(void);
 
 static void AdjustTriggerVoltage(_Bool up_down_select);
 static inline void ConfigSamplingArgs(void);
-static inline uint16_t pow10(uint8_t n);
 
 //ZLG7290 KeyBoard Driver
 extern void ZLG7290_Init(void);

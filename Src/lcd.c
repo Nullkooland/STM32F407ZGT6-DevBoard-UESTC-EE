@@ -19,11 +19,9 @@ static uint16_t screen_height = 480;
 //双缓冲区结构体
 static LCD_BackBuffer_TypeDef back_buffer;
 
-// SD卡 FatFS文件操作相关变量
-static uint8_t file_buffer[512];
-static FIL file;
-static FRESULT f_res;
-static UINT fnum;
+//GBK字库
+static FIL gbk_font_16x16, gbk_font_24x24, gbk_font_32x32;
+static _Bool is_gbk_fontlib_ready;
 
 static inline void LCD_SetWindow(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
 {
@@ -531,6 +529,34 @@ void LCD_Init(_Bool isVerticalScreen)
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 	GPIOA->BSRR = GPIO_PIN_6; //点亮背光
+
+	if (f_open(&gbk_font_16x16, "0:更纱黑体_16x16.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK &&
+		f_open(&gbk_font_24x24, "0:更纱黑体_24x24.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK &&
+		f_open(&gbk_font_32x32, "0:更纱黑体_32x32.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK) {
+		is_gbk_fontlib_ready = 1;
+	}
+}
+
+void LCD_GBKFontLib_Init(uint8_t fontType)
+{
+	switch (fontType)
+	{
+	case SANS:
+		if (f_open(&gbk_font_16x16, "0:更纱黑体_16x16.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK &&
+			f_open(&gbk_font_24x24, "0:更纱黑体_24x24.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK &&
+			f_open(&gbk_font_32x32, "0:更纱黑体_32x32.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK) {
+			is_gbk_fontlib_ready = 1;
+		}
+		break;
+	case SERIF:
+		if (f_open(&gbk_font_16x16, "0:宋体_16x16.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK &&
+			f_open(&gbk_font_24x24, "0:宋体_24x24.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK &&
+			f_open(&gbk_font_32x32, "0:宋体_32x32.fon", FA_OPEN_EXISTING | FA_READ) == FR_OK) {
+			is_gbk_fontlib_ready = 1;
+		}
+		break;
+	default: return;
+	}
 }
 
 void LCD_Clear(uint16_t color)
@@ -643,24 +669,26 @@ void LCD_DrawPicture_Stream(uint16_t x, uint16_t y, uint16_t width, uint16_t hei
 
 void LCD_DrawPicture_SD(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const uint8_t* fileName)
 {
-	f_res = f_open(&file, fileName, FA_OPEN_EXISTING | FA_READ);
+	FIL img_file;
+	UINT fnum;
+	uint8_t buffer[512];
 
-	if (f_res == FR_OK)
+	if (f_open(&img_file, fileName, FA_OPEN_EXISTING | FA_READ) == FR_OK)
 	{
 		LCD_SetWindow(x, y, width, height);
 		WRITE_CMD(0x2C00);
 
 		do {
-			f_read(&file, &file_buffer, 512U, &fnum);
-			uint16_t* imgBuffer = (uint16_t *)file_buffer;
+			f_read(&img_file, &buffer, 512U, &fnum);
+			uint16_t* pixel_buffer = (uint16_t *)buffer;
 
 			for (uint16_t i = 0; i < fnum / 2; i++) {
-				WRITE_DATA(imgBuffer[i]);
+				WRITE_DATA(pixel_buffer[i]);
 			}
 		} while (fnum > 0);
 	}
 
-	f_close(&file);
+	f_close(&img_file);
 }
 
 void LCD_DrawNumber(uint16_t x, uint16_t y, uint8_t fontSize, int num, uint16_t color)
@@ -715,21 +743,6 @@ void LCD_DrawBigNumber(uint16_t x, uint16_t y, uint8_t num, uint16_t color)
 
 void LCD_DrawString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint16_t color)
 {
-	switch (fontSize)
-	{
-	case 16:
-		f_res = f_open(&file, "0:更纱黑体_16x16.fon", FA_OPEN_EXISTING | FA_READ);
-		break;
-	case 24:
-		f_res = f_open(&file, "0:更纱黑体_24x24.fon", FA_OPEN_EXISTING | FA_READ);
-		break;
-	case 32:
-		f_res = f_open(&file, "0:更纱黑体_32x32.fon", FA_OPEN_EXISTING | FA_READ);
-		break;
-	default: return;
-
-	}
-
 	while (*str)
 	{
 		if (*str < 0x80)
@@ -739,13 +752,13 @@ void LCD_DrawString(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t *str, uint
 		}
 		else
 		{
-			LCD_DrawChar_GBK(x, y, fontSize, str++, color);
-			str++;
+			if (is_gbk_fontlib_ready) {
+				LCD_DrawChar_GBK(x, y, fontSize, str, color);
+			}
+			str += 2;
 			x += fontSize;
 		}
 	}
-
-	f_close(&file);
 }
 
 void LCD_DrawChar_ASCII(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t ch, uint16_t color)
@@ -787,12 +800,24 @@ void LCD_DrawChar_GBK(uint16_t x, uint16_t y, uint8_t fontSize, uint8_t* ptr, ui
 	uint8_t bufferSize = fontSize * fontSize >> 3;
 	uint16_t y0 = y;
 
-	f_lseek(&file, ((ptr[0] - 0xA1) * 94 + (ptr[1] - 0xA1)) * bufferSize);
-	f_read(&file, &file_buffer, bufferSize, &fnum);
+	FIL *fontlib;
+	UINT fnum;
+	uint8_t font_buffer[128];
+
+	switch (fontSize)
+	{
+	case 16: fontlib = &gbk_font_16x16; break;
+	case 24: fontlib = &gbk_font_24x24; break;
+	case 32: fontlib = &gbk_font_32x32; break;
+	default: return;
+	}
+
+	f_lseek(fontlib, ((ptr[0] - 0xA1) * 94 + (ptr[1] - 0xA1)) * bufferSize);
+	f_read(fontlib, &font_buffer, bufferSize, &fnum);
 
 	for (uint8_t i = 0; i < bufferSize; i++)
 	{
-		uint8_t temp = file_buffer[i];
+		uint8_t temp = font_buffer[i];
 		for (uint8_t j = 0; j < 8; j++)
 		{
 			if (temp & 1) LCD_DrawPixel(x, y, color);

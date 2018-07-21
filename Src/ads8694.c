@@ -23,7 +23,7 @@ void ADS8694_Init(void)
 	GPIO_InitStruct.Pin = GPIO_PIN_7;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
 	ADS8694_Reset();
@@ -74,7 +74,7 @@ void ADS8694_SetSamplingRate(uint32_t samplingRate)
 void ADS8694_StartSampling(void)
 {
 	sample_index = 0;
-	
+
 	HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_4);
 	while (sample_index < sample_count) {
 		__NOP();

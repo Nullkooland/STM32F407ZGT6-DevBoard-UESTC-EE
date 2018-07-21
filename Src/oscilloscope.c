@@ -30,27 +30,25 @@ extern TIM_HandleTypeDef htim5;
 uint32_t freqmeter_clk_count;
 _Bool is_freq_captured;
 
-
 void Oscilloscope_Init(void)
 {
 	/* ADC初始化*/
 	ADS8694_Init();
 	ADS8694_ConfigSampling(&adc_sample_buffer, SAMPLE_COUNT, ADS8694_CHANNEL_0, INPUT_RANGE_BIPOLAR_0_625x);
-	TIM2_Init();
+	//ADC1_Init();
 	/* 频率计定时器初始化*/
 	TIM5_Init();
 	/* 显示用定时器初始化 */
 	TIM6_Init();
 	TIM7_Init();
-	/* ADC初始化*/
-	ADC1_Init();
 	/* 矩阵键盘驱动初始化*/
 	ZLG7290_Init();
 
 	//osc_args.Coupling = DC_Coupling;
 	//osc_args.ProbeAttenuation = X1;
-	osc_args.TimeBase = DIV_5ms;
+	osc_args.TimeBase = DIV_1ms;
 	osc_args.VoltBase = DIV_1V;
+	osc_args.DisplayScaleFactor = VOLT_FACTOR * 0.05f;
 	osc_args.VoltOffset = 0;
 	osc_args.TriggerVolt = 0;
 
@@ -101,13 +99,15 @@ void Oscilloscope_Init(void)
 
 	LCD_DrawString(GRID_X, GRID_Y + GRID_HEIGHT + 16, 24, "频率", WHITE);
 	LCD_DrawString(GRID_X + 192, GRID_Y + GRID_HEIGHT + 16, 24, "峰峰值", WHITE);
+
+	LCD_DrawPicture_SD(VOLTBOX_X + 16, VOLTBOX_Y + VOLTBOX_HEIGHT + 10, 128, 128, "0:TigerHead.rgb16");
 }
 
 void Oscilloscope_Start(void)
 {
 	/* 启动ADC采样 */
 	//HAL_TIM_Base_Start(&htim3);
-	//ConfigSamplingArgs();
+	ConfigSamplingArgs();
 
 	/* 启动频率计 */
 	HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_4);
@@ -152,15 +152,15 @@ void Oscilloscope_Start(void)
 		//HAL_ADC_Start_DMA(&hadc1, adc_sample_buffer, SAMPLE_COUNT);
 		Graph_RecoverGrid(&graph, display_values);
 
-		for (uint16_t i = 0; i < GRID_WIDTH; i++)
-		{
-			display_values[i] = adc_samples_begin[i] * DISPLAY_CVT_FACTOR * pow10(2 - osc_args.VoltBase) + GRID_WIDTH / 2 + osc_args.VoltOffset;
+		for (uint16_t i = 0; i < GRID_WIDTH; i++) {
+			display_values[i] = adc_samples_begin[i] * osc_args.DisplayScaleFactor + GRID_HEIGHT / 2 + osc_args.VoltOffset;
 		}
 
 		Graph_DrawCurve(&graph, display_values, RED);
 
-		if (__HAL_TIM_GET_COUNTER(&htim7) > 5000) {
+		if (__HAL_TIM_GET_COUNTER(&htim7) > 10000) {
 			__HAL_TIM_SET_COUNTER(&htim7, 0);
+
 			/* 频率计显示 */
 			LCD_FillRect(GRID_X + 64, GRID_Y + GRID_HEIGHT + 16, 108, 24, BLACK);
 			if (is_freq_captured && freqmeter_clk_count > 600) {
@@ -199,27 +199,29 @@ void Oscilloscope_Start(void)
 			LCD_FillRect(TIMEBOX_X + 12, TIMEBOX_Y + 36, 150, 24, BLACK);
 			LCD_DrawString(TIMEBOX_X + (TIMEBOX_WIDTH - strlen(time_base_tag[osc_args.TimeBase]) * 12) / 2, TIMEBOX_Y + 36, 24, time_base_tag[osc_args.TimeBase], YELLOW);
 			UpdateHorizontalPosInfo();
-
-			switch (osc_args.TimeBase)
-			{
-			case DIV_1ms: ADS8694_SetSamplingRate(100000); break;
-			case DIV_5ms: ADS8694_SetSamplingRate(50000); break;
-			case DIV_10ms: ADS8694_SetSamplingRate(10000); break;
-			case DIV_50ms: ADS8694_SetSamplingRate(5000); break;
-			default:
-				break;
-			}
-			//ConfigSamplingArgs();
+			ConfigSamplingArgs();
 			break;
 
 			/* 垂直电压档选择 */
 		case 2:
-			osc_args.VoltBase = (osc_args.VoltBase + 1) % 3;
+			osc_args.VoltBase = (osc_args.VoltBase + 1) % 6;
 			LCD_FillRect(VOLTBOX_X + 12, VOLTBOX_Y + 36, 150, 24, BLACK);
 			LCD_DrawString(VOLTBOX_X + (VOLTBOX_WIDTH - strlen(volt_base_tag[osc_args.VoltBase]) * 12) / 2, VOLTBOX_Y + 36, 24, volt_base_tag[osc_args.VoltBase], YELLOW);
+
+			switch (osc_args.VoltBase)
+			{
+			case DIV_5mV: osc_args.DisplayScaleFactor = VOLT_FACTOR * 10.0f; break;
+			case DIV_10mV: osc_args.DisplayScaleFactor = VOLT_FACTOR * 5.0f; break;
+			case DIV_50mV: osc_args.DisplayScaleFactor = VOLT_FACTOR; break;
+			case DIV_100mV: osc_args.DisplayScaleFactor = VOLT_FACTOR * 0.5f; break;
+			case DIV_500mV: osc_args.DisplayScaleFactor = VOLT_FACTOR * 0.1f; break;
+			case DIV_1V: osc_args.DisplayScaleFactor = VOLT_FACTOR * 0.05f; break;
+			default:
+				break;
+			}
+
 			UpdateVerticalPosInfo();
 			break;
-
 			/* AC-DC耦合选择 */
 			/*
 		case 9:
@@ -262,6 +264,12 @@ void Oscilloscope_Start(void)
 		case 13:
 			AdjustTriggerVoltage(0);
 			break;
+			/* ADC重置 */
+		case 33:
+			ADS8694_Init();
+			ADS8694_ConfigSampling(&adc_sample_buffer, SAMPLE_COUNT, ADS8694_CHANNEL_0, INPUT_RANGE_BIPOLAR_0_625x);
+			ConfigSamplingArgs();
+			break;
 		default:
 			break;
 		}
@@ -274,7 +282,7 @@ static void AdjustVerticalPos(_Bool up_down_select)
 	static _Bool previous_direction;
 	static int16_t delta;
 
-	Graph_RecoverLineY(&graph, osc_args.TriggerVolt * DISPLAY_CVT_FACTOR * pow10(2 - osc_args.VoltBase) + osc_args.VoltOffset + GRID_HEIGHT / 2);
+	Graph_RecoverLineY(&graph, osc_args.TriggerVolt * osc_args.DisplayScaleFactor + GRID_HEIGHT / 2 + osc_args.VoltOffset);
 
 	if (previous_direction == up_down_select) {
 		delta += (up_down_select) ? 1 : -1;
@@ -299,8 +307,11 @@ static inline void UpdateVerticalPosInfo(void)
 	LCD_FillRect(VOLTBOX_X + 44, VOLTBOX_Y + 96, 84, 24, BLACK);
 	switch (osc_args.VoltBase)
 	{
+	case DIV_5mV: sprintf(str_buffer, "%+3.1fmV", osc_args.VoltOffset * 0.1f); break;
 	case DIV_10mV: sprintf(str_buffer, "%+3.1fmV", osc_args.VoltOffset * 0.2f); break;
+	case DIV_50mV: sprintf(str_buffer, "%+3.0fmV", osc_args.VoltOffset * 1.0f); break;
 	case DIV_100mV: sprintf(str_buffer, "%+3.0fmV", osc_args.VoltOffset * 2.0f); break;
+	case DIV_500mV: sprintf(str_buffer, "%+3.2fV", osc_args.VoltOffset * 0.01f); break;
 	case DIV_1V: sprintf(str_buffer, "%+3.2fV", osc_args.VoltOffset * 0.02f); break;
 	default: return;
 	}
@@ -348,24 +359,37 @@ static void AdjustTriggerVoltage(_Bool up_down_select)
 {
 	static _Bool previous_direction;
 	static int16_t delta;
+	int16_t setp;
+
+	switch (osc_args.VoltBase)
+	{
+	case DIV_5mV: setp = 2; break;
+	case DIV_10mV: setp = 4; break;
+	case DIV_50mV: setp = 20; break;
+	case DIV_100mV: setp = 50; break;
+	case DIV_500mV: setp = 100; break;
+	case DIV_1V: setp = 200; break;
+	default:
+		break;
+	}
 
 	if (previous_direction == up_down_select) {
-		delta += (up_down_select) ? 1 : -1;
-		delta = CLAMP(delta, -25, 25);
+		delta += (up_down_select) ? setp : -setp;
+		delta = CLAMP(delta, -1000, 1000);
 	}
 	else {
-		delta = (up_down_select) ? 1 : -1;
+		delta = (up_down_select) ? setp : -setp;
 	}
 	previous_direction = up_down_select;
 
 	uint16_t line_pos_Y = 0;
 
-	Graph_RecoverLineY(&graph, osc_args.TriggerVolt * DISPLAY_CVT_FACTOR * pow10(2 - osc_args.VoltBase) + osc_args.VoltOffset + GRID_HEIGHT / 2);
+	Graph_RecoverLineY(&graph, osc_args.TriggerVolt * osc_args.DisplayScaleFactor + GRID_HEIGHT / 2 + osc_args.VoltOffset);
 
 	osc_args.TriggerVolt += delta;
-	osc_args.TriggerVolt = CLAMP(osc_args.TriggerVolt, 0, 4095);
+	osc_args.TriggerVolt = CLAMP(osc_args.TriggerVolt, -(1 << 17), (1 << 17) - 1);
 
-	Graph_DrawDashedLineY(&graph, osc_args.TriggerVolt * DISPLAY_CVT_FACTOR * pow10(2 - osc_args.VoltBase) + osc_args.VoltOffset + GRID_HEIGHT / 2, LGRAYBLUE);
+	Graph_DrawDashedLineY(&graph, osc_args.TriggerVolt * osc_args.DisplayScaleFactor + GRID_HEIGHT / 2 + osc_args.VoltOffset, LGRAYBLUE);
 
 	__HAL_TIM_SET_COUNTER(&htim6, 0);
 	HAL_TIM_Base_Start_IT(&htim6);
@@ -377,12 +401,21 @@ void TIM6_DAC_IRQHandler(void)
 	{
 		__HAL_TIM_CLEAR_IT(&htim6, TIM_IT_UPDATE);
 		HAL_TIM_Base_Stop_IT(&htim6);
-		Graph_RecoverLineY(&graph, osc_args.TriggerVolt * DISPLAY_CVT_FACTOR * pow10(2 - osc_args.VoltBase) + osc_args.VoltOffset + GRID_HEIGHT / 2);
+		Graph_RecoverLineY(&graph, osc_args.TriggerVolt * osc_args.DisplayScaleFactor + osc_args.VoltOffset + GRID_HEIGHT / 2);
 	}
 }
 
 static inline void ConfigSamplingArgs(void)
 {
+	switch (osc_args.TimeBase)
+	{
+	case DIV_1ms: ADS8694_SetSamplingRate(100000); break;
+	case DIV_5ms: ADS8694_SetSamplingRate(20000); break;
+	case DIV_10ms: ADS8694_SetSamplingRate(10000); break;
+	case DIV_50ms: ADS8694_SetSamplingRate(2000); break;
+	default:
+		break;
+	}
 	/*
 	HAL_ADC_Stop(&hadc1);
 
@@ -394,15 +427,6 @@ static inline void ConfigSamplingArgs(void)
 	hadc1.Instance->SMPR1 |= ADC_SMPR1(sampling_time, ADC_CHANNEL_5);
 
 	HAL_ADC_Start_DMA(&hadc1, adc_sample_buffer, SAMPLE_COUNT);*/
-}
-
-static inline uint16_t pow10(uint8_t n)
-{
-	uint16_t value = 1;
-	while (n--) {
-		value *= 10;
-	}
-	return value;
 }
 
 /* 频率计脉宽捕获中断 */

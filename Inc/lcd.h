@@ -51,6 +51,10 @@ typedef struct
 
 } LCD_BackBuffer_TypeDef;
 
+typedef enum {
+	SANS, SERIF,
+} GBK_FontType;
+
 //////////////////////////////////////////////////////////////////////////////////
 
 //画笔颜色
@@ -88,6 +92,7 @@ static inline uint16_t LCD_ReadPixel(uint16_t x, uint16_t y);
 
 /* 用户接口函数 */
 void LCD_Init(_Bool isVerticalSreen);
+void LCD_GBKFontLib_Init(uint8_t fontType);
 void LCD_Clear(uint16_t color);
 void LCD_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
 void LCD_DrawRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);

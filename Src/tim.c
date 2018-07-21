@@ -78,6 +78,39 @@ void TIM2_Init(void)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
+
+	/**TIM2 GPIO Configuration
+	PB11     ------> TIM2_CH4
+	*/
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.Pin = GPIO_PIN_11;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
+
+void TIM3_Init(void)
+{
+	TIM_MasterConfigTypeDef sMasterConfig;
+
+	htim3.Instance = TIM3;
+	htim3.Init.Prescaler = 6;
+	htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim3.Init.Period = 399;
+	htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+	{
+		_Error_Handler(__FILE__, __LINE__);
+	}
 }
 
 void TIM5_Init(void)
@@ -115,28 +148,17 @@ void TIM5_Init(void)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
-}
 
-void TIM3_Init(void)
-{
-	TIM_MasterConfigTypeDef sMasterConfig;
-
-	htim3.Instance = TIM3;
-	htim3.Init.Prescaler = 6;
-	htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim3.Init.Period = 399;
-	htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
+	/**TIM5 GPIO Configuration
+	PA3     ------> TIM5_CH4
+	*/
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.Pin = GPIO_PIN_3;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.Alternate = GPIO_AF2_TIM5;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 /* TIM6 init function */
@@ -145,7 +167,7 @@ void TIM6_Init(void)
 	htim6.Instance = TIM6;
 	htim6.Init.Prescaler = 8399;
 	htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim6.Init.Period = 0xFFFF;
+	htim6.Init.Period = 10000;
 	if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
@@ -158,7 +180,7 @@ void TIM7_Init(void)
 	htim7.Instance = TIM7;
 	htim7.Init.Prescaler = 8399;
 	htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim7.Init.Period = 10000;
+	htim7.Init.Period = 0xFFFF;
 	if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
@@ -189,26 +211,27 @@ void TIM13_PWM_Output_Init(uint16_t period)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
+
+	/**TIM13 GPIO Configuration
+	PF8     ------> TIM13_CH1
+	*/
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.Pin = GPIO_PIN_8;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.Alternate = GPIO_AF9_TIM13;
+	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 }
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim)
 {
-	GPIO_InitTypeDef GPIO_InitStruct;
 	if (htim->Instance == TIM2)
 	{
 		/* TIM2 clock enable */
 		__HAL_RCC_TIM2_CLK_ENABLE();
-		/**TIM2 GPIO Configuration
-		PB11     ------> TIM2_CH4
-		*/
-		GPIO_InitStruct.Pin = GPIO_PIN_11;
-		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-		GPIO_InitStruct.Pull = GPIO_NOPULL;
-		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 		/* TIM2 interrupt Init */
-		HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
+		HAL_NVIC_SetPriority(TIM2_IRQn, 0, 1);
 		HAL_NVIC_EnableIRQ(TIM2_IRQn);
 	}
 	else if (htim->Instance == TIM3)
@@ -219,26 +242,15 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim)
 	{
 		/* TIM5 clock enable */
 		__HAL_RCC_TIM5_CLK_ENABLE();
-
-		/**TIM5 GPIO Configuration
-		PA3     ------> TIM5_CH4
-		*/
-		GPIO_InitStruct.Pin = GPIO_PIN_3;
-		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-		GPIO_InitStruct.Pull = GPIO_NOPULL;
-		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		GPIO_InitStruct.Alternate = GPIO_AF2_TIM5;
-		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
 		/* TIM5 interrupt Init */
-		HAL_NVIC_SetPriority(TIM5_IRQn, 0, 1);
+		HAL_NVIC_SetPriority(TIM5_IRQn, 0, 0);
 		HAL_NVIC_EnableIRQ(TIM5_IRQn);
 	}
 	else if (htim->Instance == TIM6)
 	{
 		__HAL_RCC_TIM6_CLK_ENABLE();
 		/* TIM6 interrupt Init */
-		HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 4, 0);
+		HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 7, 0);
 		HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
 	}
 	else if (htim->Instance == TIM7)
@@ -248,15 +260,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim)
 	else if (htim->Instance == TIM13)
 	{
 		__HAL_RCC_TIM13_CLK_ENABLE();
-		/**TIM13 GPIO Configuration
-		PF8     ------> TIM13_CH1
-		*/
-		GPIO_InitStruct.Pin = GPIO_PIN_8;
-		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-		GPIO_InitStruct.Pull = GPIO_NOPULL;
-		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-		GPIO_InitStruct.Alternate = GPIO_AF9_TIM13;
-		HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 	}
 }
 

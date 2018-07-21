@@ -43,10 +43,10 @@ void DMA_Init(void)
 
 	/* DMA interrupt init */
 	/* DMA2_Stream2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 1);
+	HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 1, 0);
 	HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 	/* DMA2_Stream7_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 1, 2);
+	HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 1, 1);
 	HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
 }
 

@@ -752,7 +752,7 @@
     <ClInclude Include="Inc\ads8694.h">
       <Filter>Header files\Drivers</Filter>
     </ClInclude>
-    <ClInclude Include="Inc\spectrum_display.h">
+    <ClInclude Include="Inc\spectrum.h">
       <Filter>Header files\Applications</Filter>
     </ClInclude>
   </ItemGroup>
@@ -835,7 +835,7 @@
     <ClCompile Include="Src\ads8694.c">
       <Filter>Source files\Drivers</Filter>
     </ClCompile>
-    <ClCompile Include="Src\spectrum_display.c">
+    <ClCompile Include="Src\spectrum.c">
       <Filter>Source files\Applications</Filter>
     </ClCompile>
   </ItemGroup>

@@ -18,7 +18,7 @@
 //#include "frequency_sweep.h"
 //#include "number_input.h"
 #include "oscilloscope.h"
-#include "spectrum_display.h"
+#include "spectrum.h"
 
 static void SystemClock_Config(void);
 void _Error_Handler(char*, int);
@@ -40,6 +40,8 @@ int main(void)
 	LCD_Init(0);
 	/* Initialize Fat FileSystem for SD Card */
 	FATFS_Init();
+	/* Load GBK Fontlib */
+	LCD_GBKFontLib_Init(SANS);
 	/* Initialize I/O LED */
 	GPIO_InitTypeDef GPIO_InitStruct;
 	GPIO_InitStruct.Pin = GPIO_PIN_10;
@@ -48,19 +50,14 @@ int main(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
-	//LCD_DrawPicture_SD(10, 10, 256, 256, "0:TigerHead.rgb16");
-	//int32_t adc_code_buffer[1024];
-	//ADS8694_Init();
-	//ADS8694_ConfigSampling(ADS8694_CHANNEL_0, INPUT_RANGE_BIPOLAR_0_625x, 50000);
-
 	//FreqSweep_Init();
 	//FreqSweep_Start();
 	
-	Oscilloscope_Init();
-	Oscilloscope_Start();
+	//Oscilloscope_Init();
+	//Oscilloscope_Start();
 
-	//SpectrumDisplay_Init(); 
-	//SpectrumDisplay_Start();
+	SpectrumDisplay_Init(); 
+	SpectrumDisplay_Start();
 
 	for (;;)
 	{
@@ -87,7 +84,6 @@ int main(void)
 		*/
 	}
 }
-
 
 static void SystemClock_Config(void)
 {
@@ -127,7 +123,7 @@ static void SystemClock_Config(void)
 	/* Configure the Systick */
 	HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 8000);
 	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK_DIV8);
-	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+	//HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 
 	/* GPIO Ports Clock Enable */
 	__HAL_RCC_GPIOA_CLK_ENABLE();
@@ -156,8 +152,6 @@ void HAL_MspInit(void)
 	HAL_NVIC_SetPriority(DebugMonitor_IRQn, 0, 0);
 	/* PendSV_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(PendSV_IRQn, 0, 0);
-	/* SysTick_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
 void _Error_Handler(char * file, int line)

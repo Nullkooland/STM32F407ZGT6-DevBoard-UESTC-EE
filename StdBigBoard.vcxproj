@@ -123,7 +123,7 @@
     <ClCompile Include="Src\oscilloscope.c" />
     <ClCompile Include="Src\pe4302.c" />
     <ClCompile Include="Src\sdcard.c" />
-    <ClCompile Include="Src\spectrum_display.c" />
+    <ClCompile Include="Src\spectrum.c" />
     <ClCompile Include="Src\spi.c" />
     <ClCompile Include="Src\sram.c" />
     <ClCompile Include="Src\system_stm32f4xx.c" />
@@ -149,7 +149,7 @@
     <ClInclude Include="Inc\pattern.h" />
     <ClInclude Include="Inc\pe4302.h" />
     <ClInclude Include="Inc\sdcard.h" />
-    <ClInclude Include="Inc\spectrum_display.h" />
+    <ClInclude Include="Inc\spectrum.h" />
     <ClInclude Include="Inc\spi.h" />
     <ClInclude Include="Inc\sram.h" />
     <ClInclude Include="Inc\stm32f4xx_hal_conf.h" />
