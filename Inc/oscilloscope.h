@@ -1,10 +1,10 @@
 #pragma once
 #include <stm32f4xx_hal.h>
-#include "lmh6518.h"
 
 #define CLAMP(X, LOW, HIGH)  (((X) > (HIGH)) ? (HIGH) : (((X) < (LOW)) ? (LOW) : (X)))
-#define ADC_SAMPLE_COUNT	4096
-#define DISPLAY_CVT_FACTOR	0.039f
+#define SAMPLE_COUNT		2048
+#define VOLT_FACTOR			0.017914726f
+#define DISPLAY_CVT_FACTOR  VOLT_FACTOR * 0.05f
 
 #define GRID_X				15
 #define GRID_Y				15
@@ -32,7 +32,7 @@
 #define INPUTBOX_HEIGHT		96
 
 typedef enum {
-	DIV_10us, DIV_100us, DIV_1ms, DIV_10ms
+	DIV_1ms, DIV_5ms, DIV_10ms, DIV_50ms,
 } TimeBase;
 
 typedef enum {
@@ -54,28 +54,15 @@ typedef struct {
 	uint8_t TimeBase;
 	int16_t TimeOffset;
 	uint8_t VoltBase;
-	int16_t VoltOffset;
-	int16_t TriggerVolt;
+	int32_t VoltOffset;
+	int32_t TriggerVolt;
 } OscArgs_TypeDef;
 
-typedef struct {
-	uint32_t ADCClockPrescaler;
-	uint32_t ADCSamplingTime;
-	float InterpFactor;
-} SamplingArgs;
-
-
-static const SamplingArgs sampling_args[4] = {
-	{ ADC_CLOCK_SYNC_PCLK_DIV2, ADC_SAMPLETIME_3CYCLES, 0.567f },
-	{ ADC_CLOCK_SYNC_PCLK_DIV4, ADC_SAMPLETIME_28CYCLES, 1.052f },
-	{ ADC_CLOCK_SYNC_PCLK_DIV8, ADC_SAMPLETIME_144CYCLES, 1.345f },
-	{ ADC_CLOCK_SYNC_PCLK_DIV8, ADC_SAMPLETIME_480CYCLES, 4.254f },
-};
-static const uint8_t *time_base_tag[5] = { "10us/div", "100us/div", "1ms/div", "10ms/div", "100ms/div" };
+static const uint8_t *time_base_tag[4] = { "1ms/div", "5ms/dive", "10ms/div", "50ms/div" };
 static const uint8_t *volt_base_tag[3] = { "10mV/div", "100mV/div", "1V/div" };
 
 void Oscilloscope_Init(void);
-void Oscilloscope_Test(void);
+void Oscilloscope_Start(void);
 
 static void AdjustVerticalPos(_Bool up_down_select);
 static inline void UpdateVerticalPosInfo(void);
@@ -84,19 +71,12 @@ static void AdjustHorizontalPos(_Bool right_left_select);
 static inline void UpdateHorizontalPosInfo(void);
 
 static void AdjustTriggerVoltage(_Bool up_down_select);
-static inline void UpdateTriggerVoltageInfo(void);
-
-static inline void UpdateSamplingRate(void);
-static inline float pow10(uint8_t n);
+static inline void ConfigSamplingArgs(void);
+static inline uint16_t pow10(uint8_t n);
 
 //ZLG7290 KeyBoard Driver
 extern void ZLG7290_Init(void);
 extern uint8_t ZLG7290_ReadKey(void);
-//LMH6518 PGA
-extern void LMH6518_SetAuxOutput(_Bool isEnabled);
-extern void LMH6518_PreAmp(LMH6518_PreAmpMode mode);
-extern void LMH6518_SetBandWidth(LMH6518_FilterBandwith bandwith);
-extern void LMH6518_SetAttenuation(LMH6518_LadderAttenuation attenuation);
 //On Chip ADC
 extern void ADC1_Init(void);
 //Delay

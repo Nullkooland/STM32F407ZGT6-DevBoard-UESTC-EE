@@ -128,7 +128,6 @@ SD_ERROR SD_Init(void)
 	SPI2_SetSpeed(SPI_BAUDRATEPRESCALER_2);
 	SD_GetCardInfo();
 	return result;
-
 }
 
 SD_ERROR SD_GetCardInfo(void)

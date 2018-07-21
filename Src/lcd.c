@@ -12,7 +12,7 @@
 
 extern DMA_HandleTypeDef hdma_m2m;
 
-//分辨率 默认横评
+//分辨率 默认横屏
 static uint16_t screen_width = 800;
 static uint16_t screen_height = 480;
 
@@ -889,25 +889,25 @@ void Graph_Init(const Graph_TypeDef *graph)
 	//填充背景
 	LCD_BackBuffer_Clear(graph->BackgroudColor);
 	//细网格-水平
-	for (i = 10; i < graph->Height; i += 10) {
+	for (i = graph->FineGridHeight; i < graph->Height; i += graph->FineGridHeight) {
 		for (j = 0; j < graph->Width; j++) {
 			LCD_BackBuffer_DrawPixel(j, i, graph->FineGridColor);
 		}
 	}
 	//细网格-垂直
-	for (i = 10; i < graph->Width; i += 10) {
+	for (i = graph->FineGridWidth; i < graph->Width; i += graph->FineGridWidth) {
 		for (j = 0; j < graph->Height; j++) {
 			LCD_BackBuffer_DrawPixel(i, j, graph->FineGridColor);
 		}
 	}
 	//粗网格-水平
-	for (i = 0; i < graph->Height; i += 50) {
+	for (i = 0; i < graph->Height; i += graph->RoughGridHeight) {
 		for (j = 0; j < graph->Width; j++) {
 			LCD_BackBuffer_DrawPixel(j, i, graph->RoughGridColor);
 		}
 	}
 	//粗网格-垂直
-	for (i = 0; i < graph->Width; i += 50) {
+	for (i = 0; i < graph->Width; i += graph->RoughGridWidth) {
 		for (j = 0; j < graph->Height; j++) {
 			LCD_BackBuffer_DrawPixel(i, j, graph->RoughGridColor);
 		}
@@ -916,22 +916,64 @@ void Graph_Init(const Graph_TypeDef *graph)
 	//填充背景
 	LCD_FillRect(graph->X, graph->Y, graph->Width, graph->Height, graph->BackgroudColor);
 	//细网格-水平 
-	for (i = 10; i < graph->Height; i += 10) {
+	for (i = graph->FineGridHeight; i < graph->Height; i += graph->FineGridHeight) {
 		LCD_DrawLine(graph->X, i + graph->Y, graph->X + graph->Width - 1, i + graph->Y, graph->FineGridColor);
 	}
 	//细网格-垂直
-	for (i = 10; i < graph->Width; i += 10) {
+	for (i = graph->FineGridWidth; i < graph->Width; i += graph->FineGridWidth) {
 		LCD_DrawLine(i + graph->X, graph->Y, i + graph->X, graph->Y + graph->Height - 1, graph->FineGridColor);
 	}
 	//粗网格-水平
-	for (i = 0; i < graph->Height; i += 50) {
+	for (i = 0; i < graph->Height; i += graph->RoughGridHeight) {
 		LCD_DrawLine(graph->X, i + graph->Y, graph->X + graph->Width - 1, i + graph->Y, graph->RoughGridColor);
 	}
 	//粗网格-垂直
-	for (i = 0; i < graph->Width; i += 50) {
+	for (i = 0; i < graph->Width; i += graph->RoughGridWidth) {
 		LCD_DrawLine(i + graph->X, graph->Y, i + graph->X, graph->Y + graph->Height - 1, graph->RoughGridColor);
 	}
 #endif // GRPAH_USE_BACKBUFFER
+}
+
+void Graph_DrawImg(const Graph_TypeDef *graph, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t *pBuffer)
+{
+	if (y >= graph->Height) return;
+	y = graph->Height - y;
+
+	for (uint16_t i = 0; i < height; i++)
+	{
+		for (uint16_t j = 0; j < width; j++)
+		{
+			/* 把黑色当作透明 */
+			if (pBuffer[i * width + j] != 0x0000) {
+#if GRAPH_USE_BACKBUFFER
+				LCD_BackBuffer_DrawPixel(x + j, y + i, pBuffer[i * width + j]);
+#else
+				LCD_DrawPixel(graph->X + x + j, graph->Y + y + i, pBuffer[i * width + j]);
+#endif // GRAPH_USE_BACKBUFFER
+			}
+		}
+	}
+}
+
+void Grpah_RecoverRect(const Graph_TypeDef *graph, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+	uint16_t pixel_color;
+	if (y >= graph->Height) return;
+	y = graph->Height - y;
+
+	for (uint16_t i = 0; i < height; i++)
+	{
+		for (uint16_t j = 0; j < width; j++)
+		{
+			pixel_color = Graph_GetRecoverPixelColor(graph, x + j, y + i);
+#if GRAPH_USE_BACKBUFFER
+			LCD_BackBuffer_DrawPixel(x + j, y + i, pixel_color);
+#else
+			LCD_DrawPixel(graph->X + x + j, graph->Y + y + i, pixel_color);
+#endif // GRAPH_USE_BACKBUFFER
+
+		}
+	}
 }
 
 void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t color)
@@ -1109,11 +1151,11 @@ void Graph_RecoverLineY(const Graph_TypeDef *graph, uint16_t y)
 
 static inline uint16_t Graph_GetRecoverPixelColor(const Graph_TypeDef *graph, uint16_t x0, uint16_t y0)
 {
-	if ((x0 % 50 == 0) || (y0 % 50 == 0)) {
+	if ((x0 % graph->RoughGridWidth == 0) || (y0 % graph->RoughGridHeight == 0)) {
 		return graph->RoughGridColor;
 	}
 
-	if ((x0 % 10 == 0) || (y0 % 10 == 0)) {
+	if ((x0 % graph->FineGridWidth == 0) || (y0 % graph->FineGridHeight == 0)) {
 		return graph->FineGridColor;
 	}
 

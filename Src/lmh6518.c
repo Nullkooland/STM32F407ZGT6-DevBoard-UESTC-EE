@@ -2,7 +2,7 @@
 #include "spi.h"
 
 extern SPI_HandleTypeDef hspi2;
-LMH6518_TypeDef lmh6518;
+static LMH6518_TypeDef lmh6518;
 
 void LMH6518_SetAuxOutput(_Bool isEnabled)
 {

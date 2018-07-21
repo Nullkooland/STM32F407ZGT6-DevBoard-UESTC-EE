@@ -1,18 +1,24 @@
 #include "ads8694.h"
 #include "spi.h"
+#include "tim.h"
+
+extern TIM_HandleTypeDef htim2;
+int32_t *sample_buffer;
+uint32_t sample_count;
+uint32_t sample_index;
 
 void ADS8694_Init(void)
 {
 	/* PCLK1 / 4 = 10.5 MHz */
+	SPI2_Init();
 	SPI2_SetSpeed(SPI_BAUDRATEPRESCALER_4);
-	/* Chip Select GPIO Init */
 	GPIO_InitTypeDef GPIO_InitStruct;
+	/* Chip Select GPIO Init */
 	GPIO_InitStruct.Pin = GPIO_PIN_11;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_PULLUP;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
 	/* Reset GPIO Init */
 	GPIO_InitStruct.Pin = GPIO_PIN_7;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -23,32 +29,87 @@ void ADS8694_Init(void)
 	ADS8694_Reset();
 }
 
-void ADS8694_SetAutoScanSequence(uint8_t channels) {
-	ADS8694_WriteReg(0x01, channels);
-}
-
-void ADS8694_SetChannelPowerDown(uint8_t channels) {
-	ADS8694_WriteReg(0x02, channels);
-}
-
-void ADS8694_SetInputRange(uint8_t channel, uint8_t range)
+void ADS8694_ConfigSampling(int32_t *pBuffer, uint32_t count, uint8_t channel, uint8_t inputRange)
 {
-	for (uint8_t i = 0; i < 4; i++)
-	{
+	// Set buffer pointer
+	sample_buffer = pBuffer;
+	sample_count = count;
+	// Unused channels power down
+	ADS8694_WriteReg(0x02, (~channel) & 0x0F);
+
+	// Set input range
+	for (uint8_t i = 0; i < 4; i++) {
 		if (channel & 1) {
-			ADS8694_WriteReg(0x05 + i, range);
+			ADS8694_WriteReg(0x05 + i, inputRange);
 		}
 		channel >>= 1;
 	}
+
+	if (channel & (channel - 1) == 0) {
+		// Set single channel manual selection
+		switch (channel)
+		{
+		case ADS8694_CHANNEL_0: ADS8694_SendCmd(MAN_CH0); break;
+		case ADS8694_CHANNEL_1: ADS8694_SendCmd(MAN_CH1); break;
+		case ADS8694_CHANNEL_2: ADS8694_SendCmd(MAN_CH2); break;
+		case ADS8694_CHANNEL_3: ADS8694_SendCmd(MAN_CH3); break;
+		default:
+			break;
+		}
+	}
+	else {
+		//Set auto scan sequence
+		ADS8694_WriteReg(0x01, channel);
+		ADS8694_SendCmd(AUTO_RST);
+	}
+
+	TIM2_Init();
 }
 
-void ADS8694_SendCmd(uint16_t cmd)
+void ADS8694_SetSamplingRate(uint32_t samplingRate)
+{
+	__HAL_TIM_SET_AUTORELOAD(&htim2, (12000000U / samplingRate) - 1);
+}
+
+void ADS8694_StartSampling(void)
+{
+	sample_index = 0;
+	
+	HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_4);
+	while (sample_index < sample_count) {
+		__NOP();
+	}
+}
+
+/*
+void ADS8694_StartSampling(int32_t *pBuffer, uint32_t count)
+{
+	int32_t adc_code = 0;
+	for (uint32_t i = 0; i < count; i++)
+	{
+		//Start data frame
+		ADS8694_CS0;
+		//Send 0x0000 for continuous mode
+		SPI2_RW_Byte(0x00);
+		SPI2_RW_Byte(0x00);
+		//Read 18-bit ADC Code
+		adc_code |= SPI2_RW_Byte(0xFF) << 10;
+		adc_code |= SPI2_RW_Byte(0xFF) << 2;
+		adc_code |= SPI2_RW_Byte(0xFF);
+		pBuffer[i] = adc_code;
+		//Pull CS to HIGH for at least 30ns
+		ADS8694_CS1;
+		__NOP();
+	}
+}*/
+
+static void ADS8694_SendCmd(uint8_t cmd)
 {
 	/* Start command frame */
 	ADS8694_CS0;
 	/* Send command */
-	SPI2_RW_Byte(cmd >> 8);
-	SPI2_RW_Byte(cmd & 0xFF);
+	SPI2_RW_Byte(cmd);
+	SPI2_RW_Byte(0x00);
 	/* Dummy read to form a complete frame */
 	SPI2_RW_Byte(0xFF);
 	SPI2_RW_Byte(0xFF);
@@ -76,8 +137,8 @@ static void ADS8694_WriteReg(uint8_t addr, uint8_t data)
 	/* Start write frame */
 	ADS8694_CS0;
 	/* Write program register */
-	SPI2_RW_Byte(write_data.Bytes[0]);
 	SPI2_RW_Byte(write_data.Bytes[1]);
+	SPI2_RW_Byte(write_data.Bytes[0]);
 	/* Read the data just been written for check */
 	uint8_t echo_data = SPI2_RW_Byte(0xFF);
 	/* Pull CS to HIGH for at least 30ns */
@@ -85,35 +146,46 @@ static void ADS8694_WriteReg(uint8_t addr, uint8_t data)
 	__NOP();
 }
 
-void ADS8694_Sampling(int32_t *pBuffer, uint32_t count)
+static uint8_t ADS8694_ReadReg(uint8_t addr)
 {
-	union {
-		int32_t Value;
-		uint8_t Bytes[3];
-	} adc_code;
-
-	for (uint32_t i = 0; i < count; i++)
-	{
-		/* Start data frame */
-		ADS8694_CS0;
-		/* Send 0x0000 for continuous mode */
-		SPI2_RW_Byte(0x00);
-		SPI2_RW_Byte(0x00);
-		/* Read 18-bit ADC Code */
-		adc_code.Bytes[0] = SPI2_RW_Byte(0xFF);
-		adc_code.Bytes[1] = SPI2_RW_Byte(0xFF);
-		adc_code.Bytes[2] = SPI2_RW_Byte(0xFF);
-		/* Shift 6 bit */
-		pBuffer[i] = adc_code.Value >> 6;
-		/* Pull CS to HIGH for at least 30ns */
-		ADS8694_CS1;
-		__NOP();
-	}
+	/* Start read frame */
+	ADS8694_CS0;
+	/* Write program register */
+	SPI2_RW_Byte(addr << 1);
+	/* Dummy write */
+	SPI2_RW_Byte(0xFF);
+	/* Read the data just been written for check */
+	uint8_t read_data = SPI2_RW_Byte(0xFF);
+	/* Pull CS to HIGH for at least 30ns */
+	ADS8694_CS1;
+	__NOP();
+	return read_data;
 }
+
 
 static inline void ADS8694_Reset(void)
 {
 	ADS8694_RST0;
 	__NOP();
 	ADS8694_RST1;
+}
+
+void TIM2_IRQHandler(void)
+{
+	int32_t adc_code = 0;
+	if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_CC4) != RESET) {
+		__HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_CC4);
+		// Send 0x0000 for continuous mode
+		SPI2_RW_Byte(0x00);
+		SPI2_RW_Byte(0x00);
+		// Read 18-bit ADC Code
+		adc_code |= SPI2_RW_Byte(0xFF) << 10;
+		adc_code |= SPI2_RW_Byte(0xFF) << 2;
+		adc_code |= SPI2_RW_Byte(0xFF);
+		sample_buffer[sample_index++] = adc_code;
+
+		if (sample_index >= sample_count) {
+			HAL_TIM_PWM_Stop_IT(&htim2, TIM_CHANNEL_4);
+		}
+	}
 }

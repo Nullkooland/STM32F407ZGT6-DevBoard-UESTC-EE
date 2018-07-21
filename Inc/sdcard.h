@@ -1,11 +1,11 @@
 #include <stm32f4xx_hal.h>
 #include "diskio.h"
 
-#define SD_BLOCK_SIZE	512U
-#define RESERVED_MASK (uint32_t)0x0F7D0F7D
+#define SD_BLOCK_SIZE		512U
+#define RESERVED_MASK		(uint32_t)0x0F7D0F7D
 
-#define SD_CS0			GPIOB->BSRR = (uint32_t)GPIO_PIN_12 << 16U
-#define SD_CS1			GPIOB->BSRR = GPIO_PIN_12
+#define SD_CS0				GPIOB->BSRR = (uint32_t)GPIO_PIN_12 << 16U
+#define SD_CS1				GPIOB->BSRR = GPIO_PIN_12
 
 typedef enum
 {

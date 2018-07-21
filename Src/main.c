@@ -9,6 +9,7 @@
 #include "fsmc.h"
 #include "fatfs.h"
 /* External Hardware */
+#include "ads8694.h"
 #include "zlg7290.h"
 #include "lcd.h"
 #include "sram.h"
@@ -17,6 +18,7 @@
 //#include "frequency_sweep.h"
 //#include "number_input.h"
 #include "oscilloscope.h"
+#include "spectrum_display.h"
 
 static void SystemClock_Config(void);
 void _Error_Handler(char*, int);
@@ -38,16 +40,32 @@ int main(void)
 	LCD_Init(0);
 	/* Initialize Fat FileSystem for SD Card */
 	FATFS_Init();
+	/* Initialize I/O LED */
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.Pin = GPIO_PIN_10;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+	//LCD_DrawPicture_SD(10, 10, 256, 256, "0:TigerHead.rgb16");
+	//int32_t adc_code_buffer[1024];
+	//ADS8694_Init();
+	//ADS8694_ConfigSampling(ADS8694_CHANNEL_0, INPUT_RANGE_BIPOLAR_0_625x, 50000);
 
 	//FreqSweep_Init();
 	//FreqSweep_Start();
 	
 	Oscilloscope_Init();
+	Oscilloscope_Start();
+
+	//SpectrumDisplay_Init(); 
+	//SpectrumDisplay_Start();
 
 	for (;;)
 	{
-		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
-		Delay_ms(100);
+		Delay_ms(1000);
+		HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
 
 		/*
 		Graph_DrawCursorX(&graph, cursorXA, YELLOW, cursorXB, BROWN);
@@ -67,11 +85,9 @@ int main(void)
 		Graph_RecoverGrid(&graph, ch0);
 		Graph_RecoverGrid(&graph, ch1);
 		*/
-
-		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
-		Delay_ms(100);
 	}
 }
+
 
 static void SystemClock_Config(void)
 {
@@ -143,7 +159,6 @@ void HAL_MspInit(void)
 	/* SysTick_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
-
 
 void _Error_Handler(char * file, int line)
 {

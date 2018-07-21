@@ -20,7 +20,7 @@ size_t _write(int file, uint8_t *pBuffer, size_t len)
 void USART1_UART_Init(void)
 {
 	huart1.Instance = USART1;
-	huart1.Init.BaudRate = 115200;
+	huart1.Init.BaudRate = 19200;
 	huart1.Init.WordLength = UART_WORDLENGTH_8B;
 	huart1.Init.StopBits = UART_STOPBITS_1;
 	huart1.Init.Parity = UART_PARITY_NONE;

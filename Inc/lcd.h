@@ -25,8 +25,14 @@ typedef struct
 {
 	uint16_t X;
 	uint16_t Y;
+
 	uint16_t Width;
 	uint16_t Height;
+	uint16_t RoughGridWidth;
+	uint16_t RoughGridHeight;
+	uint16_t FineGridWidth;
+	uint16_t FineGridHeight;
+
 	uint16_t BorderColor;
 	uint16_t BackgroudColor;
 	uint16_t RoughGridColor;
@@ -104,6 +110,8 @@ static inline uint16_t LCD_BackBuffer_ReadPixel(uint16_t x, uint16_t y);
 /* 实时曲线图操作函数 */
 void Graph_Init(const Graph_TypeDef *graph);
 
+void Graph_DrawImg(const Graph_TypeDef *graph, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t *pBuffer);
+void Grpah_RecoverRect(const Graph_TypeDef *graph, uint16_t x, uint16_t y, uint16_t width, uint16_t height);
 void Graph_DrawCurve(const Graph_TypeDef *graph, const uint16_t *data, uint16_t color);
 void Graph_DrawLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color);
 void Graph_DrawDashedLineX(const Graph_TypeDef *graph, uint16_t x, uint16_t color);
