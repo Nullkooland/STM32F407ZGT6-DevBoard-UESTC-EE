@@ -3,7 +3,9 @@
 
 #define CLAMP(X, LOW, HIGH)  (((X) > (HIGH)) ? (HIGH) : (((X) < (LOW)) ? (LOW) : (X)))
 #define SAMPLE_COUNT		2048
-#define VOLT_FACTOR			0.017914726f
+#define VOLT_FACTOR			0.0063463f
+#define EXTRA_GAIN_FACTOR	0.12700467f
+//#define VOLT_FACTOR		0.00634431f
 
 #define GRID_X				15
 #define GRID_Y				15
@@ -28,7 +30,7 @@
 #define INPUTBOX_X			GRID_X + GRID_WIDTH + 10
 #define INPUTBOX_Y			TRIGBOX_Y + TRIGBOX_HEIGHT + 10
 #define INPUTBOX_WIDTH		168
-#define INPUTBOX_HEIGHT		96
+#define INPUTBOX_HEIGHT		150
 
 typedef enum {
 	DIV_1ms, DIV_5ms, DIV_10ms, DIV_50ms,
@@ -59,7 +61,7 @@ typedef struct {
 } OscArgs_TypeDef;
 
 static const uint8_t *time_base_tag[4] = { "1ms/div", "5ms/dive", "10ms/div", "50ms/div" };
-static const uint8_t *volt_base_tag[6] = { "5mV/div", "10mV/div", "50mV/div", "100mV/div", "500mV/div", "1V/div" };
+static const uint8_t *volt_base_tag[6] = { "5mA/div", "10mA/div", "50mA/div", "100mA/div", "500mA/div", "1A/div" };
 
 void Oscilloscope_Init(void);
 void Oscilloscope_Start(void);

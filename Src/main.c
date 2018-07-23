@@ -25,6 +25,8 @@ void _Error_Handler(char*, int);
 
 extern UART_RxBufferTypeDef uart1_rx_buffer;
 
+_Bool is_extra_gain;
+
 int main(void)
 {
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -44,7 +46,7 @@ int main(void)
 	LCD_GBKFontLib_Init(SANS);
 	/* Initialize I/O LED */
 	GPIO_InitTypeDef GPIO_InitStruct;
-	GPIO_InitStruct.Pin = GPIO_PIN_10;
+	GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_10;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_PULLUP;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -56,12 +58,43 @@ int main(void)
 	//Oscilloscope_Init();
 	//Oscilloscope_Start();
 
-	SpectrumDisplay_Init(); 
-	SpectrumDisplay_Start();
+	//SpectrumDisplay_Init(); 
+	//SpectrumDisplay_Start();
+
+	LCD_DrawPicture_SD(0, 0, 800, 480, "0:WBB.RGB16");
+	LCD_DrawString(320, 240, 32, "´ýÃüÖÐ£¡", BLACK);
+
+	is_extra_gain = 0;
+	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_6, !is_extra_gain);
 
 	for (;;)
 	{
-		Delay_ms(1000);
+		switch (ZLG7290_ReadKey())
+		{
+		case 1: 	
+			Oscilloscope_Init();
+			Oscilloscope_Start();
+			LCD_Clear(BLACK);
+			LCD_DrawString(320, 240, 32, "´ýÃüÖÐ£¡", WHITE);
+			break;
+
+		case 2:
+			SpectrumDisplay_Init();
+			SpectrumDisplay_Start();
+			LCD_Clear(BLACK);
+			LCD_DrawString(320, 240, 32, "´ýÃüÖÐ£¡", WHITE);
+			break;
+
+		case 34:
+			is_extra_gain = !is_extra_gain;
+			HAL_GPIO_WritePin(GPIOF, GPIO_PIN_6, !is_extra_gain);
+			break;
+
+		default:
+			break;
+		}
+
+		Delay_ms(100);
 		HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
 
 		/*

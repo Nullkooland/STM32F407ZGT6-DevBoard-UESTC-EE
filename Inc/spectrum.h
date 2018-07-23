@@ -1,12 +1,23 @@
 #pragma once
 #include <stm32f4xx_hal.h>
 
-#define MAX_SAMPLE_COUNT	2048
+#define MAX_SAMPLE_COUNT		4096
+#define EXTRA_GAIN_FACTOR		0.12700467f
 
-#define GRID_X				25
-#define GRID_Y				25
-#define GRID_WIDTH			600
-#define GRID_HEIGHT			400
+#define GRID_X					15
+#define GRID_Y					15
+#define GRID_WIDTH				600
+#define GRID_HEIGHT				400
+
+#define BASEFREQBOX_X			GRID_X + GRID_WIDTH + 10
+#define BASEFREQBOX_Y			GRID_Y - 1
+#define BASEFREQBOX_WIDTH		168
+#define BASEFREQBOX_HEIGHT		72
+
+#define AMPBOX_X				GRID_X + GRID_WIDTH + 10
+#define AMPBOX_Y				BASEFREQBOX_Y + BASEFREQBOX_HEIGHT + 10
+#define AMPBOX_WIDTH			168
+#define	AMPBOX_HEIGHT			236
 
 typedef enum {
 	RECTANGLE_WINDOW,
@@ -29,7 +40,7 @@ typedef enum {
 } FreqBase;
 
 static const uint8_t *freq_base_tag[4] = { "50Hz/div", "100Hz/div", "500Hz/div", "1kHz/div" };
-static const uint16_t sample_count_values[4] = { 512, 1024, 2048, 2048 };
+static const uint16_t sample_count_values[4] = { 256, 512, 1024, 2048 };
 
 void SpectrumDisplay_Init(void);
 void SpectrumDisplay_Start(void);

@@ -17,6 +17,7 @@ extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
 
 //采样
+extern _Bool is_extra_gain;
 //extern ADC_HandleTypeDef hadc1;
 //extern DMA_HandleTypeDef hdma_adc1;
 //extern TIM_HandleTypeDef htim3;
@@ -42,7 +43,7 @@ void Oscilloscope_Init(void)
 	TIM6_Init();
 	TIM7_Init();
 	/* 矩阵键盘驱动初始化*/
-	ZLG7290_Init();
+	//ZLG7290_Init();
 
 	//osc_args.Coupling = DC_Coupling;
 	//osc_args.ProbeAttenuation = X1;
@@ -53,6 +54,8 @@ void Oscilloscope_Init(void)
 	osc_args.TriggerVolt = 0;
 
 	/* GUI 初始化 */
+	LCD_Clear(BLACK);
+
 	graph.X = GRID_X;
 	graph.Y = GRID_Y;
 
@@ -68,7 +71,7 @@ void Oscilloscope_Init(void)
 	graph.RoughGridColor = GRAY;
 	graph.FineGridColor = DARKGRAY;
 	Graph_Init(&graph);
-	
+
 	LCD_DrawRect(TIMEBOX_X, TIMEBOX_Y, TIMEBOX_WIDTH, TIMEBOX_HEIGHT, WHITE);
 	LCD_DrawString(TIMEBOX_X + 12, TIMEBOX_Y + 6, 24, "水平时基档位", WHITE);
 	LCD_DrawString(TIMEBOX_X + (TIMEBOX_WIDTH - strlen(time_base_tag[osc_args.TimeBase]) * 12) / 2, TIMEBOX_Y + 36, 24, time_base_tag[osc_args.TimeBase], YELLOW);
@@ -78,7 +81,7 @@ void Oscilloscope_Init(void)
 	UpdateHorizontalPosInfo();
 
 	LCD_DrawRect(VOLTBOX_X, VOLTBOX_Y, VOLTBOX_WIDTH, VOLTBOX_HEIGHT, WHITE);
-	LCD_DrawString(VOLTBOX_X + 12, VOLTBOX_Y + 6, 24, "垂直电压档位", WHITE);
+	LCD_DrawString(VOLTBOX_X + 12, VOLTBOX_Y + 6, 24, "垂直电流档位", WHITE);
 	LCD_DrawString(VOLTBOX_X + (VOLTBOX_WIDTH - strlen(volt_base_tag[osc_args.VoltBase]) * 12) / 2, VOLTBOX_Y + 36, 24, volt_base_tag[osc_args.VoltBase], YELLOW);
 
 	LCD_DrawString(VOLTBOX_X + 36, VOLTBOX_Y + 66, 24, "垂直偏移", WHITE);
@@ -99,8 +102,10 @@ void Oscilloscope_Init(void)
 
 	LCD_DrawString(GRID_X, GRID_Y + GRID_HEIGHT + 16, 24, "频率", WHITE);
 	LCD_DrawString(GRID_X + 192, GRID_Y + GRID_HEIGHT + 16, 24, "峰峰值", WHITE);
+	LCD_DrawString(GRID_X + 384, GRID_Y + GRID_HEIGHT + 16, 24, "有效值", WHITE);
 
 	LCD_DrawPicture_SD(VOLTBOX_X + 16, VOLTBOX_Y + VOLTBOX_HEIGHT + 10, 128, 128, "0:TigerHead.rgb16");
+	LCD_DrawString(770, 450, 24, "LG", STEELBLUE);
 }
 
 void Oscilloscope_Start(void)
@@ -146,14 +151,21 @@ void Oscilloscope_Start(void)
 
 		arm_max_q31(adc_samples_begin, GRID_WIDTH, &max_val, &max_index);
 		arm_min_q31(adc_samples_begin, GRID_WIDTH, &min_val, &min_index);
+		//4点平均数字滤波
+		arm_mean_q31(adc_samples_begin + max_index - 2, 4, &max_val);
+		arm_mean_q31(adc_samples_begin + min_index - 2, 4, &min_val);
 
 		volt_pp = (max_val - min_val) * VOLT_FACTOR;
+		if (is_extra_gain) {
+			volt_pp *= EXTRA_GAIN_FACTOR;
+		}
 
 		//HAL_ADC_Start_DMA(&hadc1, adc_sample_buffer, SAMPLE_COUNT);
 		Graph_RecoverGrid(&graph, display_values);
 
 		for (uint16_t i = 0; i < GRID_WIDTH; i++) {
-			display_values[i] = adc_samples_begin[i] * osc_args.DisplayScaleFactor + GRID_HEIGHT / 2 + osc_args.VoltOffset;
+			display_values[i] = adc_samples_begin[i] * osc_args.DisplayScaleFactor * (is_extra_gain ? EXTRA_GAIN_FACTOR : 1.0f)
+							  + GRID_HEIGHT / 2 + osc_args.VoltOffset;
 		}
 
 		Graph_DrawCurve(&graph, display_values, RED);
@@ -170,21 +182,35 @@ void Oscilloscope_Start(void)
 				else {
 					sprintf(str_buffer, "%.2fHz", 6000000.0f / freqmeter_clk_count);
 				}
-				LCD_DrawString(GRID_X + 64, GRID_Y + GRID_HEIGHT + 16, 24, str_buffer, CYAN);
+				LCD_DrawString(GRID_X + 64, GRID_Y + GRID_HEIGHT + 16, 24, str_buffer, GBLUE);
 				is_freq_captured = 0;
 			}
 			else {
-				LCD_DrawString(GRID_X + 64, GRID_Y + GRID_HEIGHT + 16, 24, "------", CYAN);
+				LCD_DrawString(GRID_X + 64, GRID_Y + GRID_HEIGHT + 16, 24, "------", GBLUE);
 			}
 			/* 峰峰值显示 */
-			LCD_FillRect(GRID_X + 280, GRID_Y + GRID_HEIGHT + 16, 108, 24, BLACK);
 			if (volt_pp < 1000.0f) {
-				sprintf(str_buffer, "%.1fmV", volt_pp);
+				sprintf(str_buffer, "%.1fmA", volt_pp);
 			}
 			else {
-				sprintf(str_buffer, "%.3fV", volt_pp * 0.001f);
+				sprintf(str_buffer, "%.3fA", volt_pp * 0.001f);
 			}
-			LCD_DrawString(GRID_X + 280, GRID_Y + GRID_HEIGHT + 16, 24, str_buffer, CYAN);
+			LCD_FillRect(GRID_X + 280, GRID_Y + GRID_HEIGHT + 16, 108, 24, BLACK);
+			LCD_DrawString(GRID_X + 280, GRID_Y + GRID_HEIGHT + 16, 24, str_buffer, GBLUE);
+
+			/* 有效值显示 */
+			volt_pp *= 0.3535534f;
+			if (volt_pp < 1000.0f) {
+				sprintf(str_buffer, "%.2fmA", volt_pp);
+			}
+			else {
+				sprintf(str_buffer, "%.3fA", volt_pp * 0.001f);
+			}
+			LCD_FillRect(GRID_X + 472, GRID_Y + GRID_HEIGHT + 16, 108, 24, BLACK);
+			LCD_DrawString(GRID_X + 472, GRID_Y + GRID_HEIGHT + 16, 24, str_buffer, GBLUE);
+#if DEBUG
+			printf("Extra Gain = %u, ADC Code diff = %u\n", is_extra_gain, max_val - min_val);
+#endif
 		}
 
 #if GRAPH_USE_BACKBUFFER
@@ -195,7 +221,7 @@ void Oscilloscope_Start(void)
 		{
 			/* 水平时基选择 */
 		case 1:
-			osc_args.TimeBase = (osc_args.TimeBase + 1) % 4;
+			osc_args.TimeBase = (osc_args.TimeBase + 1) % 3;
 			LCD_FillRect(TIMEBOX_X + 12, TIMEBOX_Y + 36, 150, 24, BLACK);
 			LCD_DrawString(TIMEBOX_X + (TIMEBOX_WIDTH - strlen(time_base_tag[osc_args.TimeBase]) * 12) / 2, TIMEBOX_Y + 36, 24, time_base_tag[osc_args.TimeBase], YELLOW);
 			UpdateHorizontalPosInfo();
@@ -270,6 +296,24 @@ void Oscilloscope_Start(void)
 			ADS8694_ConfigSampling(&adc_sample_buffer, SAMPLE_COUNT, ADS8694_CHANNEL_0, INPUT_RANGE_BIPOLAR_0_625x);
 			ConfigSamplingArgs();
 			break;
+
+		case 34: 
+			is_extra_gain = !is_extra_gain;
+			HAL_GPIO_WritePin(GPIOF, GPIO_PIN_6, !is_extra_gain);
+
+			LCD_FillRect(770, 450, 24, 24, BLACK);
+			if (is_extra_gain) {
+				LCD_DrawString(770, 450, 24, "HG", RED);
+			}
+			else {
+				LCD_DrawString(770, 450, 24, "LG", STEELBLUE);
+			}
+			
+			break;
+
+		case 37: 
+			return;
+
 		default:
 			break;
 		}
@@ -307,12 +351,12 @@ static inline void UpdateVerticalPosInfo(void)
 	LCD_FillRect(VOLTBOX_X + 44, VOLTBOX_Y + 96, 84, 24, BLACK);
 	switch (osc_args.VoltBase)
 	{
-	case DIV_5mV: sprintf(str_buffer, "%+3.1fmV", osc_args.VoltOffset * 0.1f); break;
-	case DIV_10mV: sprintf(str_buffer, "%+3.1fmV", osc_args.VoltOffset * 0.2f); break;
-	case DIV_50mV: sprintf(str_buffer, "%+3.0fmV", osc_args.VoltOffset * 1.0f); break;
-	case DIV_100mV: sprintf(str_buffer, "%+3.0fmV", osc_args.VoltOffset * 2.0f); break;
-	case DIV_500mV: sprintf(str_buffer, "%+3.2fV", osc_args.VoltOffset * 0.01f); break;
-	case DIV_1V: sprintf(str_buffer, "%+3.2fV", osc_args.VoltOffset * 0.02f); break;
+	case DIV_5mV: sprintf(str_buffer, "%+3.1fmA", osc_args.VoltOffset * 0.1f); break;
+	case DIV_10mV: sprintf(str_buffer, "%+3.1fmA", osc_args.VoltOffset * 0.2f); break;
+	case DIV_50mV: sprintf(str_buffer, "%+3.0fmA", osc_args.VoltOffset * 1.0f); break;
+	case DIV_100mV: sprintf(str_buffer, "%+3.0fmA", osc_args.VoltOffset * 2.0f); break;
+	case DIV_500mV: sprintf(str_buffer, "%+3.2fA", osc_args.VoltOffset * 0.01f); break;
+	case DIV_1V: sprintf(str_buffer, "%+3.2fA", osc_args.VoltOffset * 0.02f); break;
 	default: return;
 	}
 	LCD_DrawString(VOLTBOX_X + 44, VOLTBOX_Y + 96, 24, str_buffer, YELLOW);

@@ -1,6 +1,7 @@
 #include "ads8694.h"
 #include "spi.h"
 #include "tim.h"
+#include "lcd.h"
 
 extern TIM_HandleTypeDef htim2;
 int32_t *sample_buffer;
@@ -73,12 +74,13 @@ void ADS8694_SetSamplingRate(uint32_t samplingRate)
 
 void ADS8694_StartSampling(void)
 {
+	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, SET);
 	sample_index = 0;
-
 	HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_4);
 	while (sample_index < sample_count) {
 		__NOP();
 	}
+	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, RESET);
 }
 
 /*

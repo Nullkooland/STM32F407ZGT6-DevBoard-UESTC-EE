@@ -58,7 +58,7 @@ typedef enum {
 //////////////////////////////////////////////////////////////////////////////////
 
 //画笔颜色
-#define WHITE         	 0xFFFF
+#define WHITE			 0xFFFF
 #define BLACK         	 0x0000	  
 #define BLUE         	 0x001F  
 #define BRED             0xF81F
@@ -73,14 +73,18 @@ typedef enum {
 #define BRRED 			 0xFC07 //棕红色
 #define GRAY  			 0x7BEF //灰色
 #define DARKGRAY  		 0x2124	//深灰色
-
+#define PURPLE			 32784
+#define PANSY			 28692
+#define LILAC			 46303
 #define DARKBLUE      	 0x01CF	//深蓝色
-#define LIGHTBLUE      	 0x7D7C	//浅蓝色  
+#define LIGHTBLUE      	 0x841F	//浅蓝色  
 #define GRAYBLUE       	 0x5458 //灰蓝色
 
-#define LIGHTGREEN     	 0x841F //浅绿色
+#define LIGHTGREEN     	 0x7D7C //浅绿色
 #define LIGHTGRAY        0xEF5B //浅灰色(PANNEL)
 #define LGRAY 			 0xC618 //浅灰色(PANNEL),窗体背景色
+
+#define  STEELBLUE		17430
 
 #define LGRAYBLUE        0xA651 //浅灰蓝色(中间层颜色)
 #define LBBLUE           0x2B12 //浅棕蓝色(选择条目的反色)
