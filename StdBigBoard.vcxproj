@@ -46,6 +46,7 @@
       <PreprocessorDefinitions>DEBUG=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions />
       <CPPLanguageStandard />
+      <Optimization>Og</Optimization>
     </ClCompile>
     <Link>
       <LibrarySearchDirectories>;%(Link.LibrarySearchDirectories)</LibrarySearchDirectories>
@@ -136,14 +137,17 @@
     <ClInclude Include="Inc\ads8694.h" />
     <ClInclude Include="Inc\ascii.h" />
     <ClInclude Include="Inc\big_number.h" />
+    <ClInclude Include="Inc\colors.h" />
     <ClInclude Include="Inc\dac.h" />
     <ClInclude Include="Inc\diskio.h" />
     <ClInclude Include="Inc\dma.h" />
     <ClInclude Include="Inc\frequency_sweep.h" />
     <ClInclude Include="Inc\fsmc.h" />
     <ClInclude Include="Inc\i2c.h" />
+    <ClInclude Include="Inc\ili9341.h" />
     <ClInclude Include="Inc\lcd.h" />
     <ClInclude Include="Inc\lmh6518.h" />
+    <ClInclude Include="Inc\nt35510.h" />
     <ClInclude Include="Inc\number_input.h" />
     <ClInclude Include="Inc\oscilloscope.h" />
     <ClInclude Include="Inc\pattern.h" />
@@ -152,7 +156,6 @@
     <ClInclude Include="Inc\spectrum.h" />
     <ClInclude Include="Inc\spi.h" />
     <ClInclude Include="Inc\sram.h" />
-    <ClInclude Include="Inc\stm32f4xx_hal_conf.h" />
     <ClInclude Include="Inc\tim.h" />
     <ClInclude Include="Inc\usart.h" />
     <ClInclude Include="Inc\zlg7290.h" />

@@ -1,12 +1,13 @@
 #include "frequency_sweep.h"
 #include "number_input.h"
 #include "lcd.h"
+#include "colors.h"
 #include "zlg7290.h"
 #include "lmh6518.h"
 
 #include <arm_math.h>
 
-//»æÍ¼Ïà¹Ø
+//ç»˜å›¾ç›¸å…³
 static uint8_t str_buffer[32];
 static uint16_t display_values[GRID_WIDTH];
 static Graph_TypeDef graph;
@@ -14,15 +15,15 @@ static Graph_TypeDef graph;
 static _Bool is_cursor_select_A;
 static int16_t cursor_XA, cursor_XB;
 
-//Êä³ö·ùÖµ¿ØÖÆ
+//è¾“å‡ºå¹…å€¼æ§åˆ¶
 static uint8_t output_amp;
 static uint8_t amp_step;
 //static uint8_t pe4302_2x_loss;	// dB
 
-//É¨Æµ¿ØÖÆ
-static uint32_t sweep_freq[3];		// 0:ÆğÊ¼ÆµÂÊ, 1:ÖÕÖ¹ÆµÂÊ, 2:ÆµÂÊ²½½ø
+//æ‰«é¢‘æ§åˆ¶
+static uint32_t sweep_freq[3];		// 0:èµ·å§‹é¢‘ç‡, 1:ç»ˆæ­¢é¢‘ç‡, 2:é¢‘ç‡æ­¥è¿›
 
-//¼ì²¨µçÆ½²ÉÑù
+//æ£€æ³¢ç”µå¹³é‡‡æ ·
 extern ADC_HandleTypeDef hadc1;
 static uint16_t adc_sampling_values[ADC_SAMPLE_COUNT];
 static uint16_t data_values[MAX_SAMPLE_COUNT];
@@ -31,449 +32,449 @@ static uint16_t sample_count;
 
 void FreqSweep_Init(void)
 {
-	//Ó²¼şÍâÉè³õÊ¼»¯
-	PE4302_Init();
-	AD9959_Init();
-	ADC1_Init();
+    //ç¡¬ä»¶å¤–è®¾åˆå§‹åŒ–
+    PE4302_Init();
+    AD9959_Init();
+    ADC1_Init();
 
-	AD9959_SetFreq(OUTPUT_CHANNEL, 10000000U);
+    AD9959_SetFreq(OUTPUT_CHANNEL, 10000000U);
 
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.Pin = GPIO_PIN_10;
-	GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
-	GPIO_InitStructure.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOF, &GPIO_InitStructure);
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.Pin = GPIO_PIN_10;
+    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+    GPIO_InitStructure.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStructure);
 
-	//ÉèÖÃ¸÷Ïî³õÊ¼²ÎÊı
-	output_amp = 50;
-	amp_step = 1;
+    //è®¾ç½®å„é¡¹åˆå§‹å‚æ•°
+    output_amp = 50;
+    amp_step = 1;
 
-	sweep_freq[0] = 1000;
-	sweep_freq[1] = 50000;
-	sweep_freq[2] = 100;
-	sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
+    sweep_freq[0] = 1000;
+    sweep_freq[1] = 50000;
+    sweep_freq[2] = 100;
+    sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
 
-	//GUI ³õÊ¼»¯
-	graph.X = GRID_X;
-	graph.Y = GRID_Y;
-	graph.Width = GRID_WIDTH;
-	graph.Height = GRID_HEIGHT;
-	graph.BorderColor = WHITE;
-	graph.BackgroudColor = BLACK;
-	graph.RoughGridColor = GRAY;
-	graph.FineGridColor = DARKGRAY;
+    //GUI åˆå§‹åŒ–
+    graph.X = GRID_X;
+    graph.Y = GRID_Y;
+    graph.Width = GRID_WIDTH;
+    graph.Height = GRID_HEIGHT;
+    graph.BorderColor = WHITE;
+    graph.BackgroudColor = BLACK;
+    graph.RoughGridColor = GRAY;
+    graph.FineGridColor = DARKGRAY;
 
-	Graph_Init(&graph);
+    Graph_Init(&graph);
 
-	/* Interp Test */
-	/*
-	uint16_t size = 128;
-	float delta = 0.12f;
+    /* Interp Test */
+    /*
+    uint16_t size = 128;
+    float delta = 0.12f;
 
-	uint16_t sample_data[128];
-	uint16_t origin_data[GRID_WIDTH];
-	uint16_t interp_data[GRID_WIDTH];
+    uint16_t sample_data[128];
+    uint16_t origin_data[GRID_WIDTH];
+    uint16_t interp_data[GRID_WIDTH];
 
-	for (uint16_t i = 0; i < size; i++) {
-		sample_data[i] = (2.0f + arm_sin_f32(delta * i)) * 100U;
-	}
+    for (uint16_t i = 0; i < size; i++) {
+        sample_data[i] = (2.0f + arm_sin_f32(delta * i)) * 100U;
+    }
 
-	for (uint16_t i = 0; i < GRID_WIDTH; i++) {
-		//Linear Interpolation
-		uint32_t x = (i << 20) / GRID_WIDTH * size;
-		interp_data[i] = arm_linear_interp_q15(sample_data, x, size);
-		//For Contrast
-		origin_data[i] = (2.0f + arm_sin_f32(delta * size / GRID_WIDTH * i)) * 100U;
-	}
+    for (uint16_t i = 0; i < GRID_WIDTH; i++) {
+        //Linear Interpolation
+        uint32_t x = (i << 20) / GRID_WIDTH * size;
+        interp_data[i] = arm_linear_interp_q15(sample_data, x, size);
+        //For Contrast
+        origin_data[i] = (2.0f + arm_sin_f32(delta * size / GRID_WIDTH * i)) * 100U;
+    }
 
-	Graph_DrawCurve(&graph, origin_data, BLUE);
-	Graph_DrawCurve(&graph, interp_data, RED);
-	*/
-	//LCD_BackBuffer_Update();
+    Graph_DrawCurve(&graph, origin_data, BLUE);
+    Graph_DrawCurve(&graph, interp_data, RED);
+    */
+    //LCD_BackBuffer_Update();
 
-	int i;
+    int i;
 
-	//×İ×ø±ê-·ù¶È
-	LCD_DrawChar_ASCII(GRID_X - 15, GRID_Y + 192, 16, '0', WHITE);
-	for (i = 0; i < 4; i++) {
-		LCD_DrawNumber(GRID_X - 20, GRID_Y - 8 + i * 50, 16, (4 - i) * 10, WHITE);
-	}
-	for (i = 0; i < 3; i++) {
-		LCD_DrawNumber(GRID_X - 20, GRID_Y + 242 + i * 50, 16, (i + 1) * 10, WHITE);
-		LCD_DrawChar_ASCII(GRID_X - 30, GRID_Y + 242 + i * 50, 16, '-', WHITE);
-	}
-	//µ¥Î»£ºdB
-	LCD_DrawString(GRID_X - 20, GRID_Y + GRID_HEIGHT - 16, 16, "dB", WHITE);
+    //çºµåæ ‡-å¹…åº¦
+    LCD_DrawChar_ASCII(GRID_X - 15, GRID_Y + 192, 16, '0', WHITE);
+    for (i = 0; i < 4; i++) {
+        LCD_DrawNumber(GRID_X - 20, GRID_Y - 8 + i * 50, 16, (4 - i) * 10, WHITE);
+    }
+    for (i = 0; i < 3; i++) {
+        LCD_DrawNumber(GRID_X - 20, GRID_Y + 242 + i * 50, 16, (i + 1) * 10, WHITE);
+        LCD_DrawChar_ASCII(GRID_X - 30, GRID_Y + 242 + i * 50, 16, '-', WHITE);
+    }
+    //å•ä½ï¼šdB
+    LCD_DrawString(GRID_X - 20, GRID_Y + GRID_HEIGHT - 16, 16, "dB", WHITE);
 
-	//ºá×ø±ê-ÆµÂÊ
-	UpdateFreqInfoDispaly();
-	//µ¥Î»£ºMHz
-	LCD_DrawString(GRID_X + GRID_WIDTH - 12, GRID_Y + GRID_HEIGHT + 20, 16, "MHz", WHITE);
+    //æ¨ªåæ ‡-é¢‘ç‡
+    UpdateFreqInfoDispaly();
+    //å•ä½ï¼šMHz
+    LCD_DrawString(GRID_X + GRID_WIDTH - 12, GRID_Y + GRID_HEIGHT + 20, 16, "MHz", WHITE);
 
-	//É¨ÆµĞÅÏ¢´°    
-	LCD_DrawRect(FREQBOX_X, FREQBOX_Y, FREQBOX_WIDTH, FREQBOX_HEIGHT, WHITE);
-	LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 8, 16, "ÆğÊ¼ÆµÂÊ:", WHITE);
-	LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 32, 16, "ÖÕÖ¹ÆµÂÊ:", WHITE);
-	LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 56, 16, "ÆµÂÊ²½½ø:", WHITE);
-	LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 80, 16, "²ÉÑùµãÊı:", WHITE);
+    //æ‰«é¢‘ä¿¡æ¯çª—    
+    LCD_DrawRect(FREQBOX_X, FREQBOX_Y, FREQBOX_WIDTH, FREQBOX_HEIGHT, WHITE);
+    LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 8, 16, "èµ·å§‹é¢‘ç‡:", WHITE);
+    LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 32, 16, "ç»ˆæ­¢é¢‘ç‡:", WHITE);
+    LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 56, 16, "é¢‘ç‡æ­¥è¿›:", WHITE);
+    LCD_DrawString(FREQBOX_X + 8, FREQBOX_Y + 80, 16, "é‡‡æ ·ç‚¹æ•°:", WHITE);
 
-	//Êä³ö·ù¶ÈĞÅÏ¢´°
-	LCD_DrawRect(AMPBOX_X, AMPBOX_Y, AMPBOX_WIDTH, AMPBOX_HEIGHT, WHITE);
-	LCD_DrawString(AMPBOX_X + 8, AMPBOX_Y + 8, 16, "µ±Ç°Êä³ö·ù¶È:", WHITE);
-	LCD_DrawString(AMPBOX_X + 8, AMPBOX_Y + 32, 16, "·ù¶Èµ÷½Ú²½½ø:", WHITE);
+    //è¾“å‡ºå¹…åº¦ä¿¡æ¯çª—
+    LCD_DrawRect(AMPBOX_X, AMPBOX_Y, AMPBOX_WIDTH, AMPBOX_HEIGHT, WHITE);
+    LCD_DrawString(AMPBOX_X + 8, AMPBOX_Y + 8, 16, "å½“å‰è¾“å‡ºå¹…åº¦:", WHITE);
+    LCD_DrawString(AMPBOX_X + 8, AMPBOX_Y + 32, 16, "å¹…åº¦è°ƒèŠ‚æ­¥è¿›:", WHITE);
 
-	sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
-	LCD_DrawString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
-	UpdateOutputAmp();
+    sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
+    LCD_DrawString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
+    UpdateOutputAmp();
 
-	//¹â±ê¶ÁÊı´°
-	LCD_DrawRect(CURSORBOX_X, CURSORBOX_Y, CURSORBOX_WIDTH, CURSORBOX_HEIGHT, WHITE);
-	LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 8, 16, "¹â±êÑ¡Ôñ:", WHITE);
+    //å…‰æ ‡è¯»æ•°çª—
+    LCD_DrawRect(CURSORBOX_X, CURSORBOX_Y, CURSORBOX_WIDTH, CURSORBOX_HEIGHT, WHITE);
+    LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 8, 16, "å…‰æ ‡é€‰æ‹©:", WHITE);
 
-	LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 40, 16, "A - ÆµÂÊ:", WHITE);
-	LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 64, 16, "B - ÆµÂÊ:", WHITE);
-	LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 88, 16, "¦¤- ÆµÂÊ:", WHITE);
+    LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 40, 16, "A - é¢‘ç‡:", WHITE);
+    LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 64, 16, "B - é¢‘ç‡:", WHITE);
+    LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 88, 16, "Î”- é¢‘ç‡:", WHITE);
 
-	LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 120, 16, "A - ÔöÒæ:", WHITE);
-	LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 144, 16, "B - ÔöÒæ:", WHITE);
-	LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 168, 16, "¦¤- ÔöÒæ:", WHITE);
+    LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 120, 16, "A - å¢ç›Š:", WHITE);
+    LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 144, 16, "B - å¢ç›Š:", WHITE);
+    LCD_DrawString(CURSORBOX_X + 8, CURSORBOX_Y + 168, 16, "Î”- å¢ç›Š:", WHITE);
 
-	//¹â±ê³õÊ¼»¯
-	is_cursor_select_A = 1;
-	cursor_XA = GRID_WIDTH / 3;
-	cursor_XB = GRID_WIDTH * 2 / 3;
-	CursorParametersDisplay();
+    //å…‰æ ‡åˆå§‹åŒ–
+    is_cursor_select_A = 1;
+    cursor_XA = GRID_WIDTH / 3;
+    cursor_XB = GRID_WIDTH * 2 / 3;
+    CursorParametersDisplay();
 }
 
 void FreqSweep_Start()
 {
-	for (;;)
-	{
-		switch (ZLG7290_ReadKey())
-		{
-		case 9:
-			//¹éÒ»»¯Ğ£×¼
-			FreqSweepAndSampling();
-			for (uint16_t i = 0; i < sample_count; i++) {
-				normalize_values[i] = data_values[i] - 1241;
-			}
-			break;
+    for (;;)
+    {
+        switch (ZLG7290_ReadKey())
+        {
+            case 9:
+                //å½’ä¸€åŒ–æ ¡å‡†
+                FreqSweepAndSampling();
+                for (uint16_t i = 0; i < sample_count; i++) {
+                    normalize_values[i] = data_values[i] - 1241;
+                }
+                break;
 
-		case 17:
-			SetFreqParameters();
-			break;
+            case 17:
+                SetFreqParameters();
+                break;
 
-		case 25:
-			++amp_step;
-			amp_step %= 5;
+            case 25:
+                ++amp_step;
+                amp_step %= 5;
 
-			sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
+                sprintf(str_buffer, "%-3u mV", (amp_step + 1) * 2);
 
-			LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 32, 48, 16, BLACK);
-			LCD_DrawString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
-			break;
+                LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 32, 48, 16, BLACK);
+                LCD_DrawString(AMPBOX_X + 118, AMPBOX_Y + 32, 16, str_buffer, LIGHTGRAY);
+                break;
 
-		case 26:
-			if (output_amp > amp_step + 2) {
-				output_amp -= amp_step + 1;
-			}
+            case 26:
+                if (output_amp > amp_step + 2) {
+                    output_amp -= amp_step + 1;
+                }
 
-			UpdateOutputAmp();
-			break;
+                UpdateOutputAmp();
+                break;
 
-		case 27:
-			if (output_amp + amp_step < 50) {
-				output_amp += amp_step + 1;
-			}
+            case 27:
+                if (output_amp + amp_step < 50) {
+                    output_amp += amp_step + 1;
+                }
 
-			UpdateOutputAmp();
-			break;
+                UpdateOutputAmp();
+                break;
 
-		case 33:
-			is_cursor_select_A = !is_cursor_select_A;
+            case 33:
+                is_cursor_select_A = !is_cursor_select_A;
 
-			Graph_RecoverLineX(&graph, cursor_XA);
-			Graph_RecoverLineX(&graph, cursor_XB);
-			CursorParametersDisplay();
-			break;
+                Graph_RecoverLineX(&graph, cursor_XA);
+                Graph_RecoverLineX(&graph, cursor_XB);
+                CursorParametersDisplay();
+                break;
 
-		case 34:
-			Graph_RecoverLineX(&graph, cursor_XA);
-			Graph_RecoverLineX(&graph, cursor_XB);
+            case 34:
+                Graph_RecoverLineX(&graph, cursor_XA);
+                Graph_RecoverLineX(&graph, cursor_XB);
 
-			if (is_cursor_select_A) {
-				cursor_XA -= 2;
-				cursor_XA = (cursor_XA <= 0) ? GRID_WIDTH - 1 : cursor_XA;
-			}
-			else {
-				cursor_XB -= 2;
-				cursor_XB = (cursor_XB <= 0) ? GRID_WIDTH - 1 : cursor_XB;
-			}
+                if (is_cursor_select_A) {
+                    cursor_XA -= 2;
+                    cursor_XA = (cursor_XA <= 0) ? GRID_WIDTH - 1 : cursor_XA;
+                }
+                else {
+                    cursor_XB -= 2;
+                    cursor_XB = (cursor_XB <= 0) ? GRID_WIDTH - 1 : cursor_XB;
+                }
 
-			CursorParametersDisplay();
-			break;
+                CursorParametersDisplay();
+                break;
 
-		case 35:
-			Graph_RecoverLineX(&graph, cursor_XA);
-			Graph_RecoverLineX(&graph, cursor_XB);
+            case 35:
+                Graph_RecoverLineX(&graph, cursor_XA);
+                Graph_RecoverLineX(&graph, cursor_XB);
 
-			if (is_cursor_select_A) {
-				cursor_XA += 2;
-				cursor_XA %= GRID_WIDTH;
-			}
-			else {
-				cursor_XB += 2;
-				cursor_XB %= GRID_WIDTH;
-			}
+                if (is_cursor_select_A) {
+                    cursor_XA += 2;
+                    cursor_XA %= GRID_WIDTH;
+                }
+                else {
+                    cursor_XB += 2;
+                    cursor_XB %= GRID_WIDTH;
+                }
 
-			CursorParametersDisplay();
-			break;
-		}
+                CursorParametersDisplay();
+                break;
+        }
 
-		FreqSweepAndSampling();
+        FreqSweepAndSampling();
 
-		Graph_RecoverLineX(&graph, cursor_XA);
-		Graph_RecoverLineX(&graph, cursor_XB);
-		Graph_RecoverGrid(&graph, display_values);
+        Graph_RecoverLineX(&graph, cursor_XA);
+        Graph_RecoverLineX(&graph, cursor_XB);
+        Graph_RecoverGrid(&graph, display_values);
 
-		//½«²ÉÑùÊı¾İ¼õÈ¥¹éÒ»»¯Öµ
-		arm_sub_q15(data_values, normalize_values, data_values, sample_count);
-		//½«²ÉÑùÊı¾İËõ·Åµ½Í¼±íÇøÓò·¶Î§ÖĞ
-		for (size_t i = 0; i < sample_count; i++) {
-			data_values[i] *= 0.161133f;
-		}
+        //å°†é‡‡æ ·æ•°æ®å‡å»å½’ä¸€åŒ–å€¼
+        arm_sub_q15(data_values, normalize_values, data_values, sample_count);
+        //å°†é‡‡æ ·æ•°æ®ç¼©æ”¾åˆ°å›¾è¡¨åŒºåŸŸèŒƒå›´ä¸­
+        for (size_t i = 0; i < sample_count; i++) {
+            data_values[i] *= 0.161133f;
+        }
 
-		//½«²ÉÑùÊı¾İÏßĞÔ²åÖµµ½Í¼±íÇøÏàÍ¬µÄ¿í¶ÈÒÔ±ãÓÚÏÔÊ¾
-		for (uint16_t i = 0; i < GRID_WIDTH; i++) {
-			//uint32_t x = (i << 20) * sample_count / GRID_WIDTH; //Watch for overflow dude!
-			uint32_t x = (i << 20) / GRID_WIDTH * sample_count;
-			display_values[i] = arm_linear_interp_q15(data_values, x, sample_count);
-		}
-		//arm_scale_q15(display_values, 165, -10, display_values, GRID_WIDTH);
-		//arm_shift_q15(display_values, -4, display_values, GRID_WIDTH);
+        //å°†é‡‡æ ·æ•°æ®çº¿æ€§æ’å€¼åˆ°å›¾è¡¨åŒºç›¸åŒçš„å®½åº¦ä»¥ä¾¿äºæ˜¾ç¤º
+        for (uint16_t i = 0; i < GRID_WIDTH; i++) {
+            //uint32_t x = (i << 20) * sample_count / GRID_WIDTH; //Watch for overflow dude!
+            uint32_t x = (i << 20) / GRID_WIDTH * sample_count;
+            display_values[i] = arm_linear_interp_q15(data_values, x, sample_count);
+        }
+        //arm_scale_q15(display_values, 165, -10, display_values, GRID_WIDTH);
+        //arm_shift_q15(display_values, -4, display_values, GRID_WIDTH);
 
-		if (is_cursor_select_A) {
-			Graph_DrawDashedLineX(&graph, cursor_XA, YELLOW);
-			Graph_DrawDashedLineX(&graph, cursor_XB, BROWN);
-		}
-		else {
-			Graph_DrawDashedLineX(&graph, cursor_XA, BROWN);
-			Graph_DrawDashedLineX(&graph, cursor_XB, YELLOW);
-		}
+        if (is_cursor_select_A) {
+            Graph_DrawDashedLineX(&graph, cursor_XA, YELLOW);
+            Graph_DrawDashedLineX(&graph, cursor_XB, BROWN);
+        }
+        else {
+            Graph_DrawDashedLineX(&graph, cursor_XA, BROWN);
+            Graph_DrawDashedLineX(&graph, cursor_XB, YELLOW);
+        }
 
-		Graph_DrawCurve(&graph, display_values, RED);
+        Graph_DrawCurve(&graph, display_values, RED);
 
 #if GRAPH_USE_BACKBUFFER
-		LCD_BackBuffer_Update();
+        LCD_BackBuffer_Update();
 #endif // GRAPH_USE_BACKBUFFER
 
-		Delay_ms(33);
-	}
+        Delay_ms(33);
+    }
 }
 
 static void FreqSweepAndSampling(void)
 {
-	uint32_t output_freq = sweep_freq[0];
+    uint32_t output_freq = sweep_freq[0];
 
-	//ADC¿ªÊ¼²ÉÑù¶ÔÊı¼ì²¨µçÆ½
-	HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
+    //ADCå¼€å§‹é‡‡æ ·å¯¹æ•°æ£€æ³¢ç”µå¹³
+    HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
 
-	for (uint16_t i = 0; i < sample_count; i++)
-	{
-		//¸üĞÂDDSÊä³öÆµÂÊ
-		AD9959_SetFreq(OUTPUT_CHANNEL, output_freq * 1000U);
-		//µÈ´ı¼ì²¨µçÆ½ÎÈ¶¨
-		Delay_us(320);
-		//¼ÇÂ¼²ÉÑùµã£¨´ø¾ùÖµÂË²¨£©
-		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &data_values[i]);
-		//ÆµÂÊµİ½ø
-		output_freq += sweep_freq[2];
-	}
+    for (uint16_t i = 0; i < sample_count; i++)
+    {
+        //æ›´æ–°DDSè¾“å‡ºé¢‘ç‡
+        AD9959_SetFreq(OUTPUT_CHANNEL, output_freq * 1000U);
+        //ç­‰å¾…æ£€æ³¢ç”µå¹³ç¨³å®š
+        Delay_us(320);
+        //è®°å½•é‡‡æ ·ç‚¹ï¼ˆå¸¦å‡å€¼æ»¤æ³¢ï¼‰
+        arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &data_values[i]);
+        //é¢‘ç‡é€’è¿›
+        output_freq += sweep_freq[2];
+    }
 
-	//ADCÍ£Ö¹²ÉÑù
-	HAL_ADC_Stop_DMA(&hadc1);
+    //ADCåœæ­¢é‡‡æ ·
+    HAL_ADC_Stop_DMA(&hadc1);
 }
 
 static void UpdateFreqInfoDispaly(void)
 {
-	//Ê¹ÓÃ´óºÚ¿é½øĞĞ[Êı¾İÉ¾³ı]
-	LCD_FillRect(GRID_X - 12, GRID_Y + GRID_HEIGHT + 3, GRID_WIDTH + 36, 16, BLACK);
-	LCD_FillRect(FREQBOX_X + 85, FREQBOX_Y + 8, 80, 88, BLACK);
+    //ä½¿ç”¨å¤§é»‘å—è¿›è¡Œ[æ•°æ®åˆ é™¤]
+    LCD_FillRect(GRID_X - 12, GRID_Y + GRID_HEIGHT + 3, GRID_WIDTH + 36, 16, BLACK);
+    LCD_FillRect(FREQBOX_X + 85, FREQBOX_Y + 8, 80, 88, BLACK);
 
-	//¸üĞÂÆµÂÊÖá×ø±êÖµ
-	for (uint8_t i = 0; i <= 10; i++) {
+    //æ›´æ–°é¢‘ç‡è½´åæ ‡å€¼
+    for (uint8_t i = 0; i <= 10; i++) {
 
-		sprintf(str_buffer, "%-4.1f", (sweep_freq[0] + i * (sweep_freq[1] - sweep_freq[0]) / 10) * 0.001f);
-		LCD_DrawString(GRID_X - 12 + i * 50, GRID_Y + GRID_HEIGHT + 2, 16, str_buffer, WHITE);
-	}
+        sprintf(str_buffer, "%-4.1f", (sweep_freq[0] + i * (sweep_freq[1] - sweep_freq[0]) / 10) * 0.001f);
+        LCD_DrawString(GRID_X - 12 + i * 50, GRID_Y + GRID_HEIGHT + 2, 16, str_buffer, WHITE);
+    }
 
-	//¸üĞÂÉ¨ÆµĞÅÏ¢´°ÏÔÊ¾ÊıÖµ
-	for (uint8_t i = 0; i < 3; i++) {
-		sprintf(str_buffer, "%-6.3f MHz", sweep_freq[i] * 0.001f);
-		LCD_DrawString(FREQBOX_X + 85, FREQBOX_Y + 8 + 24 * i, 16, str_buffer, LIGHTGRAY);
-	}
+    //æ›´æ–°æ‰«é¢‘ä¿¡æ¯çª—æ˜¾ç¤ºæ•°å€¼
+    for (uint8_t i = 0; i < 3; i++) {
+        sprintf(str_buffer, "%-6.3f MHz", sweep_freq[i] * 0.001f);
+        LCD_DrawString(FREQBOX_X + 85, FREQBOX_Y + 8 + 24 * i, 16, str_buffer, LIGHTGRAY);
+    }
 
-	sprintf(str_buffer, "%u µã", sample_count);
-	LCD_DrawString(FREQBOX_X + 85, FREQBOX_Y + 80, 16, str_buffer, LIGHTGRAY);
+    sprintf(str_buffer, "%u ç‚¹", sample_count);
+    LCD_DrawString(FREQBOX_X + 85, FREQBOX_Y + 80, 16, str_buffer, LIGHTGRAY);
 }
 
 static inline void UpdateOutputAmp(void)
 {
-	//²é±í²¢ÉèÖÃË¥¼õÖµ
-	PE4302_SetAttenuation(amp_table[50 - output_amp][0]);
-	AD9959_SetAmp(OUTPUT_CHANNEL, amp_table[50 - output_amp][1]);
+    //æŸ¥è¡¨å¹¶è®¾ç½®è¡°å‡å€¼
+    PE4302_SetAttenuation(amp_table[50 - output_amp][0]);
+    AD9959_SetAmp(OUTPUT_CHANNEL, amp_table[50 - output_amp][1]);
 
-	//Ê¹ÓÃ´óºÚ¿é½øĞĞ[Êı¾İÉ¾³ı]
-	LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 8, 48, 16, BLACK);
+    //ä½¿ç”¨å¤§é»‘å—è¿›è¡Œ[æ•°æ®åˆ é™¤]
+    LCD_FillRect(AMPBOX_X + 118, AMPBOX_Y + 8, 48, 16, BLACK);
 
-	//¸üĞÂÊä³ö·ù¶ÈÏ¢´°ÏÔÊ¾ÊıÖµ
-	sprintf(str_buffer, "%-3u mV", output_amp * 2);
-	LCD_DrawString(AMPBOX_X + 118, AMPBOX_Y + 8, 16, str_buffer, LIGHTGRAY);
+    //æ›´æ–°è¾“å‡ºå¹…åº¦æ¯çª—æ˜¾ç¤ºæ•°å€¼
+    sprintf(str_buffer, "%-3u mV", output_amp * 2);
+    LCD_DrawString(AMPBOX_X + 118, AMPBOX_Y + 8, 16, str_buffer, LIGHTGRAY);
 }
 
 static inline void FreqParametersDisplay(uint8_t i, _Bool isSlected)
 {
-	uint16_t back_color = (isSlected) ? LIGHTGRAY : BLACK;
-	uint16_t font_color = (isSlected) ? BLACK : LIGHTGRAY;
+    uint16_t back_color = (isSlected) ? LIGHTGRAY : BLACK;
+    uint16_t font_color = (isSlected) ? BLACK : LIGHTGRAY;
 
-	LCD_FillRect(FREQBOX_X + 85, FREQBOX_Y + 8 + 24 * i, 80, 16, back_color);
-	sprintf(str_buffer, "%-6.3f MHz", sweep_freq[i] * 0.001f);
-	LCD_DrawString(FREQBOX_X + 85, FREQBOX_Y + 8 + 24 * i, 16, str_buffer, font_color);
+    LCD_FillRect(FREQBOX_X + 85, FREQBOX_Y + 8 + 24 * i, 80, 16, back_color);
+    sprintf(str_buffer, "%-6.3f MHz", sweep_freq[i] * 0.001f);
+    LCD_DrawString(FREQBOX_X + 85, FREQBOX_Y + 8 + 24 * i, 16, str_buffer, font_color);
 }
 
 static void SetFreqParameters(void)
 {
-	uint8_t i = 0;
-	float input_val;
+    uint8_t i = 0;
+    float input_val;
 
-	uint16_t backup_sweep_freq[3];
-	backup_sweep_freq[0] = sweep_freq[0];
-	backup_sweep_freq[1] = sweep_freq[1];
-	backup_sweep_freq[2] = sweep_freq[2];
+    uint16_t backup_sweep_freq[3];
+    backup_sweep_freq[0] = sweep_freq[0];
+    backup_sweep_freq[1] = sweep_freq[1];
+    backup_sweep_freq[2] = sweep_freq[2];
 
-	FreqParametersDisplay(i, 1);
+    FreqParametersDisplay(i, 1);
 
-	for (;;)
-	{
-		switch (ZLG7290_ReadKey())
-		{
-		case 18:
+    for (;;)
+    {
+        switch (ZLG7290_ReadKey())
+        {
+            case 18:
 
-			FreqParametersDisplay(i, 0);
+                FreqParametersDisplay(i, 0);
 
-			if (i == 0) {
-				i = 2;
-			}
-			else {
-				--i;
-			}
+                if (i == 0) {
+                    i = 2;
+                }
+                else {
+                    --i;
+                }
 
-			FreqParametersDisplay(i, 1);
-			break;
+                FreqParametersDisplay(i, 1);
+                break;
 
-		case 19:
+            case 19:
 
-			FreqParametersDisplay(i, 0);
+                FreqParametersDisplay(i, 0);
 
-			if (i == 2) {
-				i = 0;
-			}
-			else {
-				++i;
-			}
+                if (i == 2) {
+                    i = 0;
+                }
+                else {
+                    ++i;
+                }
 
-			FreqParametersDisplay(i, 1);
-			break;
+                FreqParametersDisplay(i, 1);
+                break;
 
-		case 20:
+            case 20:
 
-			if (GetInputFloat(&input_val)) {
-				sweep_freq[i] = input_val * 1000U;
-				FreqParametersDisplay(i, 1);
-			}
-			break;
+                if (GetInputFloat(&input_val)) {
+                    sweep_freq[i] = input_val * 1000U;
+                    FreqParametersDisplay(i, 1);
+                }
+                break;
 
-		case 17:
-			//ÊäÈëµÄÉ¨Æµ·¶Î§ÎŞĞ§ »¹Ô­Ô­À´µÄ·¶Î§
-			if (sweep_freq[0] > sweep_freq[1] || sweep_freq[1] < 100U || sweep_freq[1] > 200000U) {
-				sweep_freq[0] = backup_sweep_freq[0];
-				sweep_freq[1] = backup_sweep_freq[1];
-			}
+            case 17:
+                //è¾“å…¥çš„æ‰«é¢‘èŒƒå›´æ— æ•ˆ è¿˜åŸåŸæ¥çš„èŒƒå›´
+                if (sweep_freq[0] > sweep_freq[1] || sweep_freq[1] < 100U || sweep_freq[1] > 200000U) {
+                    sweep_freq[0] = backup_sweep_freq[0];
+                    sweep_freq[1] = backup_sweep_freq[1];
+                }
 
-			sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
+                sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
 
-			//²ÉÑùµãÌ«¶à»òÌ«ÉÙ »¹Ô­Ô­À´µÄÆµÂÊ²½½ø
-			if (sample_count < MIN_SAMPLE_COUNT || sample_count > MAX_SAMPLE_COUNT) {
-				sweep_freq[2] = backup_sweep_freq[2];
-				sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
-			}
+                //é‡‡æ ·ç‚¹å¤ªå¤šæˆ–å¤ªå°‘ è¿˜åŸåŸæ¥çš„é¢‘ç‡æ­¥è¿›
+                if (sample_count < MIN_SAMPLE_COUNT || sample_count > MAX_SAMPLE_COUNT) {
+                    sweep_freq[2] = backup_sweep_freq[2];
+                    sample_count = (sweep_freq[1] - sweep_freq[0]) / sweep_freq[2];
+                }
 
-			UpdateFreqInfoDispaly();
-			return;
-		}
+                UpdateFreqInfoDispaly();
+                return;
+        }
 
-		Delay_ms(33);
-	}
+        Delay_ms(33);
+    }
 }
 /*
 static void GetCodeTable(void)
 {
-	extern UART_HandleTypeDef huart1;
-	uint16_t amp_ = 50;
-	uint16_t code;
-	char strbuff[1024] = { 0 };
+    extern UART_HandleTypeDef huart1;
+    uint16_t amp_ = 50;
+    uint16_t code;
+    char strbuff[1024] = { 0 };
 
-	AD9959_SetFreq(OUTPUT_CHANNEL, 20000000U);
-	HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
+    AD9959_SetFreq(OUTPUT_CHANNEL, 20000000U);
+    HAL_ADC_Start_DMA(&hadc1, adc_sampling_values, ADC_SAMPLE_COUNT);
 
-	for (uint16_t i = 0; i < 49; i++)
-	{
-		PE4302_SetLoss(amp_table[50 - amp_][0]);
-		AD9959_SetAmp(OUTPUT_CHANNEL, amp_table[50 - amp_][1]);
+    for (uint16_t i = 0; i < 49; i++)
+    {
+        PE4302_SetLoss(amp_table[50 - amp_][0]);
+        AD9959_SetAmp(OUTPUT_CHANNEL, amp_table[50 - amp_][1]);
 
-		Delay_us(5000);
-		arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &code);
+        Delay_us(5000);
+        arm_mean_q15(adc_sampling_values, ADC_SAMPLE_COUNT, &code);
 
-		sprintf(strbuff+ 6 * i, "%u, ", code);
-		
-		--amp_;
-	}
+        sprintf(strbuff+ 6 * i, "%u, ", code);
 
-	HAL_ADC_Stop_DMA(&hadc1);
-	HAL_UART_Transmit(&huart1, strbuff, strlen(strbuff), 0xFFFF);
+        --amp_;
+    }
+
+    HAL_ADC_Stop_DMA(&hadc1);
+    HAL_UART_Transmit(&huart1, strbuff, strlen(strbuff), 0xFFFF);
 }
 */
 
 static inline void CursorParametersDisplay(void)
 {
-	//ÓÃ´óºÚ¿é½øĞĞ[Êı¾İÉ¾³ı]
-	LCD_FillRect(CURSORBOX_X + 85, CURSORBOX_Y + 8, 88, 180, BLACK);
+    //ç”¨å¤§é»‘å—è¿›è¡Œ[æ•°æ®åˆ é™¤]
+    LCD_FillRect(CURSORBOX_X + 85, CURSORBOX_Y + 8, 88, 180, BLACK);
 
-	uint8_t mark = (is_cursor_select_A) ? 'A' : 'B';
-	LCD_DrawChar_ASCII(CURSORBOX_X + 85, CURSORBOX_Y + 8, 16, mark, YELLOW);
+    uint8_t mark = (is_cursor_select_A) ? 'A' : 'B';
+    LCD_DrawChar_ASCII(CURSORBOX_X + 85, CURSORBOX_Y + 8, 16, mark, YELLOW);
 
-	float freq_A = (sweep_freq[0] + (sweep_freq[1] - sweep_freq[0]) * cursor_XA / GRID_WIDTH) * 0.001f;
-	float freq_B = (sweep_freq[0] + (sweep_freq[1] - sweep_freq[0]) * cursor_XB / GRID_WIDTH) * 0.001f;
+    float freq_A = (sweep_freq[0] + (sweep_freq[1] - sweep_freq[0]) * cursor_XA / GRID_WIDTH) * 0.001f;
+    float freq_B = (sweep_freq[0] + (sweep_freq[1] - sweep_freq[0]) * cursor_XB / GRID_WIDTH) * 0.001f;
 
-	sprintf(str_buffer, "%-6.3f MHz", freq_A);
-	LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 40, 16, str_buffer, LIGHTGRAY);
+    sprintf(str_buffer, "%-6.3f MHz", freq_A);
+    LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 40, 16, str_buffer, LIGHTGRAY);
 
-	sprintf(str_buffer, "%-6.3f MHz", freq_B);
-	LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 64, 16, str_buffer, LIGHTGRAY);
+    sprintf(str_buffer, "%-6.3f MHz", freq_B);
+    LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 64, 16, str_buffer, LIGHTGRAY);
 
-	sprintf(str_buffer, "%-6.3f MHz", freq_B - freq_A);
-	LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 88, 16, str_buffer, LIGHTGRAY);
+    sprintf(str_buffer, "%-6.3f MHz", freq_B - freq_A);
+    LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 88, 16, str_buffer, LIGHTGRAY);
 
-	float gain_A = (display_values[cursor_XA] - 200) * 0.2f;
-	float gain_B = (display_values[cursor_XB] - 200) * 0.2f;
+    float gain_A = (display_values[cursor_XA] - 200) * 0.2f;
+    float gain_B = (display_values[cursor_XB] - 200) * 0.2f;
 
-	sprintf(str_buffer, "%-6.3f dB", gain_A);
-	LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 120, 16, str_buffer, LIGHTGRAY);
+    sprintf(str_buffer, "%-6.3f dB", gain_A);
+    LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 120, 16, str_buffer, LIGHTGRAY);
 
-	sprintf(str_buffer, "%-6.3f dB", gain_B);
-	LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 144, 16, str_buffer, LIGHTGRAY);
+    sprintf(str_buffer, "%-6.3f dB", gain_B);
+    LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 144, 16, str_buffer, LIGHTGRAY);
 
-	sprintf(str_buffer, "%-6.3f dB", gain_B - gain_A);
-	LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 168, 16, str_buffer, LIGHTGRAY);
+    sprintf(str_buffer, "%-6.3f dB", gain_B - gain_A);
+    LCD_DrawString(CURSORBOX_X + 85, CURSORBOX_Y + 168, 16, str_buffer, LIGHTGRAY);
 }

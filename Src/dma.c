@@ -19,48 +19,48 @@ DMA_HandleTypeDef hdma_adc1;
   */
 void DMA_Init(void)
 {
-	/* DMA controller clock enable */
-	__HAL_RCC_DMA2_CLK_ENABLE();
+    /* DMA controller clock enable */
+    __HAL_RCC_DMA2_CLK_ENABLE();
 
-	/* Configure DMA request hdma_m2m on DMA2_Stream0 */
-	hdma_m2m.Instance = DMA2_Stream0;
-	hdma_m2m.Init.Channel = DMA_CHANNEL_0;
-	hdma_m2m.Init.Direction = DMA_MEMORY_TO_MEMORY;
-	hdma_m2m.Init.PeriphInc = DMA_PINC_ENABLE;
-	hdma_m2m.Init.MemInc = DMA_MINC_DISABLE;
-	hdma_m2m.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-	hdma_m2m.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-	hdma_m2m.Init.Mode = DMA_NORMAL;
-	hdma_m2m.Init.Priority = DMA_PRIORITY_LOW;
-	hdma_m2m.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-	hdma_m2m.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-	hdma_m2m.Init.MemBurst = DMA_MBURST_INC4;
-	hdma_m2m.Init.PeriphBurst = DMA_MBURST_INC4;
-	if (HAL_DMA_Init(&hdma_m2m) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
+    /* Configure DMA request hdma_m2m on DMA2_Stream0 */
+    hdma_m2m.Instance = DMA2_Stream0;
+    hdma_m2m.Init.Channel = DMA_CHANNEL_0;
+    hdma_m2m.Init.Direction = DMA_MEMORY_TO_MEMORY;
+    hdma_m2m.Init.PeriphInc = DMA_PINC_ENABLE;
+    hdma_m2m.Init.MemInc = DMA_MINC_DISABLE;
+    hdma_m2m.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_m2m.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    hdma_m2m.Init.Mode = DMA_NORMAL;
+    hdma_m2m.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_m2m.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+    hdma_m2m.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    hdma_m2m.Init.MemBurst = DMA_MBURST_INC4;
+    hdma_m2m.Init.PeriphBurst = DMA_MBURST_INC4;
+    if (HAL_DMA_Init(&hdma_m2m) != HAL_OK)
+    {
+        _Error_Handler(__FILE__, __LINE__);
+    }
 
-	/* DMA interrupt init */
-	/* DMA2_Stream2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 1, 0);
-	HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
-	/* DMA2_Stream7_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 1, 1);
-	HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
+    /* DMA interrupt init */
+    /* DMA2_Stream2_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 1, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+    /* DMA2_Stream7_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 1, 1);
+    HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
 }
 
 void DMA2_Stream2_IRQHandler(void)
 {
-	HAL_DMA_IRQHandler(&hdma_usart1_rx);
+    HAL_DMA_IRQHandler(&hdma_usart1_rx);
 }
 
 void DMA2_Stream7_IRQHandler(void)
 {
-	HAL_DMA_IRQHandler(&hdma_usart1_tx);
+    HAL_DMA_IRQHandler(&hdma_usart1_tx);
 }
 
 void DMA2_Stream4_IRQHandler(void)
 {
-	HAL_DMA_IRQHandler(&hdma_adc1);
+    HAL_DMA_IRQHandler(&hdma_adc1);
 }

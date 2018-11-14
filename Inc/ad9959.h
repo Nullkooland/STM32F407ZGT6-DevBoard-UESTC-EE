@@ -1,19 +1,19 @@
 #pragma once
 #include <stm32f4xx_hal.h>
 
-//Æ¬Ñ¡
+//ç‰‡é€‰
 #define CS_HIGH			GPIOE->BSRR = GPIO_PIN_5
 #define CS_LOW			GPIOE->BSRR = (uint32_t)GPIO_PIN_5 << 16U
 
-//ÖØÖÃ
+//é‡ç½®
 #define RST_HIGH		GPIOG->BSRR = GPIO_PIN_14
 #define RST_LOW			GPIOG->BSRR = (uint32_t)GPIO_PIN_14 << 16U
 
-//IO¸üÐÂ
+//IOæ›´æ–°
 #define UP_HIGH			GPIOE->BSRR = GPIO_PIN_4
 #define UP_LOW			GPIOE->BSRR = (uint32_t)GPIO_PIN_4 << 16U
 
-//ÅäÖÃ¶Ë¿Ú
+//é…ç½®ç«¯å£
 #define P0_HIGH			GPIOF->BSRR = GPIO_PIN_6
 #define P0_LOW			GPIOF->BSRR = (uint32_t)GPIO_PIN_6 << 16U
 
@@ -26,11 +26,11 @@
 #define P3_HIGH			GPIOE->BSRR = GPIO_PIN_3
 #define P3_LOW			GPIOE->BSRR = (uint32_t)GPIO_PIN_3 << 16U
 
-//´®¿ÚÊ±ÖÓÍ¬²½
+//ä¸²å£æ—¶é’ŸåŒæ­¥
 #define SCLK_HIGH		GPIOE->BSRR = GPIO_PIN_6
 #define SCLK_LOW		GPIOE->BSRR = (uint32_t)GPIO_PIN_6 << 16U
 
-//´®¿ÚIO
+//ä¸²å£IO
 #define D0_HIGH			GPIOB->BSRR = GPIO_PIN_6
 #define D0_LOW			GPIOB->BSRR = (uint32_t)GPIO_PIN_6 << 16U
 
@@ -44,11 +44,11 @@
 #define D3_LOW			GPIOB->BSRR = (uint32_t)GPIO_PIN_5 << 16U
  
 
-//Ó¦ÓÃ²Î¿¼Öµ
+//åº”ç”¨å‚è€ƒå€¼
 #define CRYSTAL_FREQ	25000000U
 
-#define FREQ_REF		8.5904963602764		//ÆµÂÊ²Î¿¼
-#define PHASE_REF		45.511111111111		//ÏàÎ»²Î¿¼
+#define FREQ_REF		8.5904963602764		//é¢‘çŽ‡å‚è€ƒ
+#define PHASE_REF		45.511111111111		//ç›¸ä½å‚è€ƒ
 
 typedef enum {
 	CSR, FR1, FR2, CFR, CFTW0, CPOW0, ACR, LSRR, RDW, FDW,

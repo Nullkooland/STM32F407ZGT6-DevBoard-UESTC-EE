@@ -193,9 +193,9 @@ void TIM13_PWM_Output_Init(uint16_t period)
 	TIM_OC_InitTypeDef sConfigOC;
 
 	htim13.Instance = TIM13;
-	htim13.Init.Prescaler = 83;							//分频系数 84MHz / (83 + 1) => 1MHz
-	htim13.Init.CounterMode = TIM_COUNTERMODE_UP;		//向上计数模式
-	htim13.Init.Period = period - 1;					//周期
+	htim13.Init.Prescaler = 83;							//鍒嗛绯绘暟 84MHz / (83 + 1) => 1MHz
+	htim13.Init.CounterMode = TIM_COUNTERMODE_UP;		//鍚戜笂璁℃暟妯″紡
+	htim13.Init.Period = period - 1;					//鍛ㄦ湡
 
 	if (HAL_TIM_PWM_Init(&htim13) != HAL_OK)
 	{
